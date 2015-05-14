@@ -41,6 +41,8 @@ Another thing to notice is that you cannot use more than **1**
 search condition containing non-ascii symbols due to limitations
 in underlying imaplib library.
 
+**Important** thing to know while searching for emails is that search retrieves all resulting emails. It may become a problem in situations where number of emails is too much or email(s) size is too big and might not fit in memory. Probably a better thing would be to use generator-based approach, however it haven't been a priority for a version 1 release. 
+
 Notes on IMAP servers
 ---------------------
 
