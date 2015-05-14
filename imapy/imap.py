@@ -552,7 +552,8 @@ class IMAP():
                 )
         else:
             # return to authenticated state
+            current_folder = self.selected_folder_utf7
             self.folder()
             self.imap.delete(
-                utils.b('"') + self.selected_folder_utf7 + utils.b('"'))
+                utils.b('"') + current_folder + utils.b('"'))
         return self
