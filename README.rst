@@ -76,3 +76,10 @@ To install Imapy, simply:
 
     $ pip install imapy
 
+
+TO-DO
+-----
+
+- Create examples in separate folder
+- Better documentation
+
