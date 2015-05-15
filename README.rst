@@ -63,7 +63,7 @@ Imapy changes that.
 
     >>> box.logout()
 
-
+You can see more example `here <https://github.com/vladimarius/imapy/tree/master/examples>`_
 
 
 
@@ -75,11 +75,4 @@ To install Imapy, simply:
 .. code-block:: bash
 
     $ pip install imapy
-
-
-TO-DO
------
-
-- Create examples in separate folder
-- Better documentation
 
