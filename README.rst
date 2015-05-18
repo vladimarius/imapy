@@ -76,3 +76,7 @@ To install Imapy, simply:
 
     $ pip install imapy
 
+
+Miscellaneous
+-------------
+`Notes <https://github.com/vladimarius/imapy/blob/master/NOTES.rst>`_  & `TODO <https://github.com/vladimarius/imapy/blob/master/TODO.rst>`_
