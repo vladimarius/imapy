@@ -1,14 +1,14 @@
-Changes with nginx 1.0.2                                         18 May 2015
+Changes with Imapy 1.0.2                                         18 May 2015
 
     *) Feature: email headers access is case insensitive
     *) Feature: text and html contents/attachments are now accessed
        via email['text'] and email['html'].
        Before: email['attachments']['text'] and email['attachments']['html']
 
-Changes with nginx 1.0.1                                         14 May 2015
+Changes with Imapy 1.0.1                                         14 May 2015
 
     *) Bugfix: raised when trying to delete currently selected folder
 
-Changes with nginx 1.0.0                                         14 May 2015
+Changes with Imapy 1.0.0                                         14 May 2015
 
     *) Initial release
