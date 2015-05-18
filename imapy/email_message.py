@@ -19,11 +19,11 @@ from .exceptions import (
 )
 
 
-class EmailMessage(dict):
+class EmailMessage(utils.CaseInsensitiveDict):
     """Class for parsing email message"""
 
     def __init__(self, **kwargs):
-        super(EmailMessage, self).__init__(self)
+        super(EmailMessage, self).__init__()
         # inject connections
         self.uid = kwargs.pop('uid', None)
         self.folder = kwargs.pop('folder', None)
@@ -37,13 +37,9 @@ class EmailMessage(dict):
             'text': [],
             'html': [],
         }
-        self['headers'] = {}
+        self['headers'] = utils.CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
         self.parse()
-
-    def __getitem__(self, key):
-        """Make dictionary keys ignore case"""
-        return dict.__getitem__(self, key.lower())
 
     def clean_value(self, value, encoding):
         """Converts value to utf-8 encoding"""
