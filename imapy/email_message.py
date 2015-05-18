@@ -33,10 +33,8 @@ class EmailMessage(utils.CaseInsensitiveDict):
         self.update(kwargs)
         self['to'] = []
         self['cc'] = []
-        self['attachments'] = {
-            'text': [],
-            'html': [],
-        }
+        self['text'] = []
+        self['html'] = []
         self['headers'] = utils.CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
         self.parse()
@@ -66,8 +64,8 @@ class EmailMessage(utils.CaseInsensitiveDict):
     def _get_links(self, text):
         links = []
         """Returns list of found links in text"""
-        matches = re.findall('(?<=[\s^])(?P<link>https?\:\/\/.*?)(?=[\s$])',
-                             text, re.I)
+        matches = re.findall(
+            '(?<=[\s^\<])(?P<link>https?\:\/\/.*?)(?=[\s\>$])', text, re.I)
         if(matches):
             for match in matches:
                 links.append(match)
@@ -106,7 +104,7 @@ class EmailMessage(utils.CaseInsensitiveDict):
         # check main body
         if not self.email_obj.is_multipart():
             text = utils.b_to_str(self.email_obj.get_payload(decode=True))
-            self['attachments']['text'].append(
+            self['text'].append(
                 {
                     'text': text,
                     'text_normalized': self._normalize_string(text),
@@ -123,7 +121,7 @@ class EmailMessage(utils.CaseInsensitiveDict):
                 if content_type == 'text/plain':
                     # convert text
                     text = utils.b_to_str(part.get_payload(decode=True))
-                    self['attachments']['text'].append(
+                    self['text'].append(
                         {
                             'text': text,
                             'text_normalized':
@@ -134,7 +132,7 @@ class EmailMessage(utils.CaseInsensitiveDict):
                 elif content_type == 'text/html':
                     # convert html
                     html = utils.b_to_str(part.get_payload(decode=True))
-                    self['attachments']['html'].append(html)
+                    self['html'].append(html)
 
         # subject
         msg_subject = decode_header(self.email_obj['subject'])
