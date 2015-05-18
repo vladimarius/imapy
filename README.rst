@@ -63,7 +63,7 @@ Imapy changes that.
 
     >>> box.logout()
 
-You can see more example `here <https://github.com/vladimarius/imapy/tree/master/examples>`_
+You can see more examples `here <https://github.com/vladimarius/imapy/tree/master/examples>`_
 
 
 
