@@ -417,7 +417,7 @@ def test_operations():
     assert email1['from'] == from1
     assert email1['to'] == to1
     assert email1['subject'] == subject1
-    assert email1['attachments']['text'][0]['text'] == contents1
+    assert email1['text'][0]['text'] == contents1
 
     # get email flags from server to recheck
     emails_flags = box.folder(test_folder).emails(
@@ -440,7 +440,7 @@ def test_operations():
     assert email2['from'] == from2
     assert email2['to'] == to2
     assert email2['subject'] == subject2
-    assert email2['attachments']['text'][0]['text'] == contents2
+    assert email2['text'][0]['text'] == contents2
 
     # delete email1 from folder
     email1.delete()
@@ -550,8 +550,8 @@ def test_parsing_sample_emails():
                     ' world'
                 assert email_parsed['date'] == 'Sat, 2 May 2015 13:46:01 +0000'
                 assert 'outside of North America' in\
-                    email_parsed['attachments']['text'][0]['text_normalized']
-                assert len(email_parsed['attachments']['html']) > 0
+                    email_parsed['text'][0]['text_normalized']
+                assert len(email_parsed['html']) > 0
 
             elif msg_num == 2:
                 assert email_parsed['from_WHOM'] == \
@@ -567,8 +567,8 @@ def test_parsing_sample_emails():
                 assert email_parsed['date'] ==\
                     'Wed, 22 Apr 2015 05:00:36 +0000'
                 assert 'You have a new follower on' in\
-                    email_parsed['attachments']['text'][0]['text_normalized']
-                assert len(email_parsed['attachments']['html']) > 0
+                    email_parsed['text'][0]['text_normalized']
+                assert len(email_parsed['html']) > 0
 
             elif msg_num == 3:
                 assert email_parsed['from_WHOM'] == \
@@ -582,8 +582,8 @@ def test_parsing_sample_emails():
                 assert email_parsed['date'] ==\
                     'Thu, 30 Apr 2015 09:32:16 -0700'
                 assert 'The package could not be delivered' in\
-                    email_parsed['attachments']['text'][0]['text_normalized']
-                assert len(email_parsed['attachments']['html']) == 0
+                    email_parsed['text'][0]['text_normalized']
+                assert len(email_parsed['html']) == 0
 
             elif msg_num == 4:
                 assert email_parsed['from_WHOM'] == \
@@ -597,8 +597,8 @@ def test_parsing_sample_emails():
                 assert email_parsed['date'] ==\
                     'Wed, 29 Apr 2015 09:46:37 -0400'
                 assert 'Django does not implement X-Accel-Redirect' in\
-                    email_parsed['attachments']['text'][0]['text_normalized']
-                assert len(email_parsed['attachments']['html']) == 0
+                    email_parsed['text'][0]['text_normalized']
+                assert len(email_parsed['html']) == 0
 
             elif msg_num == 5:
                 assert email_parsed['from_WHOM'] == \
@@ -617,4 +617,4 @@ def test_parsing_sample_emails():
                 assert email_parsed['date'] ==\
                     'Tue, 24 Jul 2012 16:49:56 +0200 (CEST)'
                 assert 'des travaux sur son infrastructure' in\
-                    email_parsed['attachments']['html'][0]
+                    email_parsed['html'][0]
