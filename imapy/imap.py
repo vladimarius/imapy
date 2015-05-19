@@ -335,11 +335,11 @@ class IMAP():
                     email_id = utils.b_to_str(email_id)
                     raw_email = utils.b_to_str(raw_email)
                     # get UID
-                    uid_match = re.match('.*UID (?P<uid>[0-9]+) ', email_id)
+                    uid_match = re.match('.*UID (?P<uid>[0-9]+)', email_id)
                     uid = uid_match.group('uid')
                     # get FLAGS
                     flags = []
-                    flags_match = re.match('.*FLAGS \((?P<flags>.*?)\) ',
+                    flags_match = re.match('.*FLAGS \((?P<flags>.*?)\)',
                                            email_id)
                     if flags_match:
                         flags = [f.lower().lstrip('\\')
