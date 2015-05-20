@@ -22,13 +22,23 @@ box.folder().make_folder('Imapy')
 # (note how you can pass several folder names in a list)
 box.folder('Imapy').make_folder(['Imapy subfolder', 'Kamikaze folder'])
 
+# Get list of children names of a folder
+children = box.folder('Imapy').children()
+for c in children:
+    print("{0} is a child of 'Imapy' folder".format(c))
+
 # Rename subfolder
 subfolder_name = 'Imapy' + box.separator + 'Imapy subfolder'
 box.folder(subfolder_name).rename('My precious')
 
-# Delete
+# Delete folder
 delete_name = 'Imapy' + box.separator + 'Kamikaze folder'
 box.folder(delete_name).delete()
+
+# Select parent folder from child folder
+new_subfolder_name = 'Imapy' + box.separator + 'My precious'
+parent = box.folder(new_subfolder_name).parent()
+parent.rename('Imapy renamed')
 
 # logout
 box.logout()
