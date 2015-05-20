@@ -161,6 +161,7 @@ class IMAP():
         """
         self.selected_folder = self.mail_folder_class.get_parent_name(
             self.selected_folder)
+        self.selected_folder_utf7 = utils.str_to_utf7(self.selected_folder)
         return self
 
     def connect(self, **kwargs):
@@ -329,9 +330,13 @@ class IMAP():
         # fetch email without changing 'Seen' state
         result, data = self.imap.uid('FETCH', uids, '(FLAGS BODY.PEEK[])')
         if data:
-            for inputs in data:
+            total = len(data)
+            for i, inputs in enumerate(data):
                 if type(inputs) is tuple:
                     email_id, raw_email = inputs
+                    # Check for email flags/uid added after email contents
+                    if (i + 1) < total:
+                        email_id += b' ' + data[i + 1]
                     email_id = utils.b_to_str(email_id)
                     raw_email = utils.b_to_str(raw_email)
                     # get UID
