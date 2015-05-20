@@ -33,6 +33,7 @@ class EmailMessage(CaseInsensitiveDict):
         # init
         self.update(kwargs)
         self['to'] = []
+        self['subject'] = ''
         self['cc'] = []
         self['text'] = []
         self['html'] = []
@@ -42,12 +43,17 @@ class EmailMessage(CaseInsensitiveDict):
 
     def clean_value(self, value, encoding):
         """Converts value to utf-8 encoding"""
-        if encoding not in ['utf-8', None]:
-            return value.decode(encoding).encode('utf-8')
-        if six.PY3:
+        if six.PY2:
+            if encoding not in ['utf-8', None]:
+                return value.decode(encoding).encode('utf-8')
+        elif six.PY3:
             # in PY3 'decode_headers' may return both byte and unicode
             if isinstance(value, bytes):
-                return utils.b_to_str(value)
+                if encoding in ['utf-8', None]:
+                    return utils.b_to_str(value)
+                else:
+                    return value.decode(encoding)
+
         return value
 
     def _normalize_string(self, text):
@@ -136,15 +142,14 @@ class EmailMessage(CaseInsensitiveDict):
                     self['html'].append(html)
 
         # subject
-        msg_subject = decode_header(self.email_obj['subject'])
-        self['subject'] = self.clean_value(
-            msg_subject[0][0], msg_subject[0][1])
+        if 'subject' in self.email_obj:
+            msg_subject = decode_header(self.email_obj['subject'])
+            self['subject'] = self.clean_value(
+                msg_subject[0][0], msg_subject[0][1])
         # from
-        # [('Fran\xc3\xa7ois LeTest', 'utf-8'), ('<letest@gmail.com>', None)]
-        # From: =?utf-8?Q?Fran=C3=A7ois_Schiettecatte?= <letest@gmail.com>
-        # [('Dropbox <no-reply@dropboxmail.com>', None)]
-        # From: Dropbox <no-reply@dropboxmail.com>
-        msg_from = decode_header(self.email_obj['from'])
+        # cleanup header
+        from_header_cleaned = re.sub('[\n\r\t]+', ' ', self.email_obj['from'])
+        msg_from = decode_header(from_header_cleaned)
         msg_txt = ''
         for part in msg_from:
             msg_txt += self.clean_value(part[0], part[1])
@@ -157,16 +162,13 @@ class EmailMessage(CaseInsensitiveDict):
             self['from_whom'] = ''
             self['from_email'] = self['from'] = msg_txt.strip()
 
-        # to [('x-users@googlegroups.com', None)]
-        msg_to = decode_header(self.email_obj['to'])
-        self['to'] = self.clean_value(msg_to[0][0], msg_to[0][1]).strip('<>')
+        # to
+        if 'to' in self.email_obj:
+            msg_to = decode_header(self.email_obj['to'])
+            self['to'] = self.clean_value(
+                msg_to[0][0], msg_to[0][1]).strip('<>')
 
         # cc
-        # [('None', None)]
-        # [('Alexandra Testina <testina@mail.ru>, \r\n\tIrina Proverkina
-        # <proverkina13@yahoo.com>', None)]
-        # paladfg@gmail.com
-        # developers@googlegroups.com, test-users@googlegroups.co
         msg_cc = decode_header(str(self.email_obj['cc']))
         cc_clean = self.clean_value(msg_cc[0][0], msg_cc[0][1])
         if cc_clean and cc_clean.lower() != 'none':
