@@ -13,13 +13,14 @@
 import re
 from email.header import decode_header
 from . import utils
+from .structures import CaseInsensitiveDict
 from .packages import six
 from .exceptions import (
     EmailParsingError,
 )
 
 
-class EmailMessage(utils.CaseInsensitiveDict):
+class EmailMessage(CaseInsensitiveDict):
     """Class for parsing email message"""
 
     def __init__(self, **kwargs):
@@ -35,7 +36,7 @@ class EmailMessage(utils.CaseInsensitiveDict):
         self['cc'] = []
         self['text'] = []
         self['html'] = []
-        self['headers'] = utils.CaseInsensitiveDict()
+        self['headers'] = CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
         self.parse()
 
