@@ -190,7 +190,7 @@ def test_search_params():
         sent_before('1-Jan-2050').sent_since('1-Jan-2014').\
         since('1-Jan-2014').smaller(10000000).text('ipsum').\
         recipient(to1).undeleted().sent_on(today).on(today)
-    
+
     emails = box.folder(folder_name).emails(
         query
     )
@@ -202,12 +202,13 @@ def test_search_params():
 
     q = Q()
     # the queries below are pointless and used only for testing
-    query = q.sender('abc').unseen().unflagged().undraft().unanswered().uid('123')
+    query = q.sender('abc').unseen().unflagged().undraft().unanswered().\
+        uid('123')
     emails = box.folder(folder_name).emails(
         query
     )
     assert isinstance(emails, list)
-    
+
     q = Q()
     query = q.recent()
     emails = box.folder(folder_name).emails(
@@ -608,13 +609,53 @@ def test_parsing_sample_emails():
                 assert email_parsed['from_email'] == \
                     'notilus-inbox@contact-everyone.fr'
                 assert email_parsed['cc'] == []
-                assert email_parsed['subject'] ==\
-                    utils.str_to_b(
-                    "Orange API : Annule et Remplace, l'Opération de " +\
+                subj5 = "Orange API : Annule et Remplace, l'Opération de " +\
                     "maintenance Orange API aura lieu le jeudi 26 juillet" +\
                     " au lieu de mercredi 25 juillet"
-                    )
+                assert email_parsed['subject'] == subj5
                 assert email_parsed['date'] ==\
                     'Tue, 24 Jul 2012 16:49:56 +0200 (CEST)'
                 assert 'des travaux sur son infrastructure' in\
                     email_parsed['html'][0]
+
+            elif msg_num == 6:
+                assert email_parsed['from_WHOM'] == \
+                    '老张'
+                assert '老张' in email_parsed['from']
+                assert '<abcdef11@163.com>' in email_parsed['from']
+                assert email_parsed['from_email'] == \
+                    'abcdef11@163.com'
+                assert email_parsed['cc'] == []
+                assert email_parsed['subject'] ==\
+                    "how to put files in different dirs"
+                assert email_parsed['date'] ==\
+                    'Wed, 4 Feb 2015 21:48:47 +0800 (CST)'
+                assert 'it seems only one entry in stattic-dirs' in\
+                    email_parsed['html'][0]
+
+            elif msg_num == 7:
+                assert email_parsed['from_WHOM'] == \
+                    'Бугрым Андрей'
+                assert 'Бугрым Андрей' in email_parsed['from']
+                assert '<random555@yandex.ru>' in email_parsed['from']
+                assert email_parsed['from_email'] == \
+                    'random555@yandex.ru'
+                assert email_parsed['cc'] == []
+                assert email_parsed['subject'] == "Re: С НОВЫМ 2014 ГОДОМ!!!"
+                assert email_parsed['date'] ==\
+                    'Sat, 11 Jan 2012 02:16:33 +0400'
+                assert 'http://www.sample.us/index/abcd' in\
+                    email_parsed['text'][0]['text']
+
+            elif msg_num == 8:
+                assert email_parsed['from_WHOM'] == \
+                    'Илья Красильщик'
+                assert 'Илья Красильщик' in\
+                    email_parsed['from']
+                assert '<publisher@meduza.io>' in email_parsed['from']
+                assert email_parsed['from_email'] == \
+                    'publisher@meduza.io'
+                assert email_parsed['cc'] == []
+                assert email_parsed['subject'] == "Meduza: 20 дней вместе"
+                assert email_parsed['date'] ==\
+                    'Fri, 01 Nov 2011 16:21:09 +0000 (UTC)'
