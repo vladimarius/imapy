@@ -82,8 +82,8 @@ folder. Returns *"NO [CANNOT] Cannot rename selected folder."*
 
 Email parsing
 -------------
-- Pythons' email.header.decode_header fails to correctly parse 'From' header 
-when there is no space between email sender name/organization and email address
-- Pythons' email.header.decode_header may return different results in Python2 and
-Python 3
+- Pythons' email.header.decode_header fails to correctly parse 'From' header  when there is no space between email sender name/organization and email address
+
+- Pythons' email.header.decode_header may return different results in Python2 and Python 3
+
 - Some headers may not be present in email: 'To' header may be omitted (Yandex appends it's first welcome email to Inbox without it) and 'Subject'
