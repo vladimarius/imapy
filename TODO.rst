@@ -1,8 +1,8 @@
 **Development status**
 
-Imapy is currently in alpha stage meaning that there is still functionality to be checked and that there could be slight changes in API. The main goal for coming days (since 19 may 2015) will be much more detailed testing of email parsing which happens to be the weakest part in the library for now. 
+Imapy is currently in alpha stage meaning that there is still functionality to be checked and that there could be slight changes in API.
 
-Another things to be done:
+TODO:
 
 - Listen to the reaction of the community
 - Add more code examples
