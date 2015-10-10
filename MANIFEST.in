@@ -1,0 +1,9 @@
+include *
+include *.rst
+include *.py
+include CHANGES
+
+recursive-include docs *
+recursive-include imapy *
+recursive-include examples *
+recursive-include test_emails *
