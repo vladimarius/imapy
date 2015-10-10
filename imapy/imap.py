@@ -176,11 +176,15 @@ class IMAP():
 
         if self.ssl:
             self.lib = imaplib.IMAP4_SSL
+            default_port = imaplib.IMAP4_SSL_PORT
         else:
             self.lib = imaplib.IMAP4
+            default_port = imaplib.IMAP4_PORT
+
+        self.port = kwargs.pop('port', default_port)
 
         try:
-            self.imap = self.lib(self.host)
+            self.imap = self.lib(self.host, port=self.port)
             self.imap.debug = self.debug_level
             self.imap.login(self.username, self.password)
         # socket errors
@@ -562,3 +566,9 @@ class IMAP():
             self.imap.delete(
                 utils.b('"') + current_folder + utils.b('"'))
         return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logout()
