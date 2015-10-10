@@ -39,6 +39,7 @@ class EmailMessage(CaseInsensitiveDict):
         self['html'] = []
         self['headers'] = CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
+        self['attachments'] = []
         self.parse()
 
     def clean_value(self, value, encoding):
@@ -140,6 +141,11 @@ class EmailMessage(CaseInsensitiveDict):
                     # convert html
                     html = utils.b_to_str(part.get_payload(decode=True))
                     self['html'].append(html)
+                else:
+                    attachment = {'filename': part.get_filename(),
+                                  'data': utils.b_to_str(part.get_payload(decode=True)),
+                                  'content_type': content_type, }
+                    self['attachments'].append(attachment)
 
         # subject
         if 'subject' in self.email_obj:

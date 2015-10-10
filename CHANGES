@@ -3,6 +3,8 @@ Changes with Imapy 1.0.4                                         Unreleased
   *) Make IMAP-class a contextmanager.
      Fixes https://github.com/vladimarius/imapy/issues/7
 
+  *) Add support for attachments
+     Fixes https://github.com/vladimarius/imapy/issues/6
 
 Changes with Imapy 1.0.3                                         20 May 2015
 
