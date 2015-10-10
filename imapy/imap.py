@@ -562,3 +562,9 @@ class IMAP():
             self.imap.delete(
                 utils.b('"') + current_folder + utils.b('"'))
         return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.logout()
