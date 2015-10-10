@@ -9,6 +9,10 @@ Changes with Imapy 1.0.4                                         Unreleased
   *) Add .gitignore-file
 
   *) Add MANIFEST.in-file
+  
+  *) Add port argument to IMAP.connect
+     Fixes https://github.com/vladimarius/imapy/issues/4
+
 
 Changes with Imapy 1.0.3                                         20 May 2015
 

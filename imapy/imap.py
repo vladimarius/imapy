@@ -176,11 +176,15 @@ class IMAP():
 
         if self.ssl:
             self.lib = imaplib.IMAP4_SSL
+            default_port = imaplib.IMAP4_SSL_PORT
         else:
             self.lib = imaplib.IMAP4
+            default_port = imaplib.IMAP4_PORT
+
+        self.port = kwargs.pop('port', default_port)
 
         try:
-            self.imap = self.lib(self.host)
+            self.imap = self.lib(self.host, port=self.port)
             self.imap.debug = self.debug_level
             self.imap.login(self.username, self.password)
         # socket errors
