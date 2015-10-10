@@ -6,6 +6,8 @@ Changes with Imapy 1.0.4                                         Unreleased
   *) Add support for attachments
      Fixes https://github.com/vladimarius/imapy/issues/6
 
+  *) Add .gitignore-file
+
 Changes with Imapy 1.0.3                                         20 May 2015
 
     *) Bugfix: couldn't parse email attributes (flags, uid) sent by a
