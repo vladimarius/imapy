@@ -91,3 +91,4 @@ In reply to your message:
     em.mark('seen')
 
 s.quit()
+box.logout()
