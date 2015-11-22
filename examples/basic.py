@@ -9,6 +9,8 @@ box = imapy.connect(
     host='host',
     username='username',
     password='password',
+    # you may also specify custom port:
+    # port=993
     ssl=True,
 )
 

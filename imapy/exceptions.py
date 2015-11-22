@@ -69,6 +69,15 @@ class EmailFolderParsingError(ImapyException):
 
 
 """
+QueryBuilder Exceptions
+"""
+
+
+class SizeParsingError(ImapyException):
+    """Raised when email size is specified in an unknown format"""
+
+
+"""
 Third-party Exceptions
 """
 

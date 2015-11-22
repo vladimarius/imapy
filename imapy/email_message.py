@@ -39,6 +39,7 @@ class EmailMessage(CaseInsensitiveDict):
         self['html'] = []
         self['headers'] = CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
+        self['attachments'] = []
         self.parse()
 
     def clean_value(self, value, encoding):
@@ -81,6 +82,8 @@ class EmailMessage(CaseInsensitiveDict):
 
     def mark(self, flags):
         """Alias function for imapy.mark()"""
+        if not isinstance(flags, list):
+            flags = [flags]
         # update self['flags']
         for t in flags:
             if t[:2] == 'un':
@@ -140,6 +143,22 @@ class EmailMessage(CaseInsensitiveDict):
                     # convert html
                     html = utils.b_to_str(part.get_payload(decode=True))
                     self['html'].append(html)
+                else:
+                    try:
+                        data = part.get_payload(decode=True)
+                    # rare cases when we get decoding error
+                    except AssertionError:
+                        data = None
+                    attachment_fname = decode_header(part.get_filename())
+                    filename = self.clean_value(
+                        attachment_fname[0][0], attachment_fname[0][1]
+                    )
+                    attachment = {
+                        'filename': filename,
+                        'data': data,
+                        'content_type': content_type
+                    }
+                    self['attachments'].append(attachment)
 
         # subject
         if 'subject' in self.email_obj:

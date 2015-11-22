@@ -97,11 +97,33 @@ class IMAP():
         self.logout()
 
     @is_logged
-    def folders(self):
-        """Return list of email folders"""
-        if self.mail_folders:
-            return self.mail_folders
-        self._update_folder_info()
+    def folders(self, search_string=None):
+        """Return list of email all folders or folder names matching
+           the search string
+        """
+        if search_string:
+            # search folders folders
+            regexp = ''
+            parts = re.split('(?<!\\\)\*', search_string)
+            total = len(parts)
+            for i, p in enumerate(parts):
+                if p:
+                    regexp += re.escape(p)
+                    if (i + 1) < total:
+                        regexp += '.*'
+                else:
+                    if (i + 1) < total:
+                        regexp += '.*'
+            folders = []
+            for f in self.mail_folders:
+                real_name = f.split(self.separator).pop()
+                if re.match('^' + regexp + '$', real_name):
+                    folders.append(f)
+            return folders
+        else:
+            if self.mail_folders:
+                return self.mail_folders
+            self._update_folder_info()
         return self.mail_folders
 
     @is_logged
@@ -176,11 +198,14 @@ class IMAP():
 
         if self.ssl:
             self.lib = imaplib.IMAP4_SSL
+            default_port = imaplib.IMAP4_SSL_PORT
         else:
             self.lib = imaplib.IMAP4
+            default_port = imaplib.IMAP4_PORT
+        self.port = kwargs.pop('port', default_port)
 
         try:
-            self.imap = self.lib(self.host)
+            self.imap = self.lib(self.host, port=self.port)
             self.imap.debug = self.debug_level
             self.imap.login(self.username, self.password)
         # socket errors
@@ -346,9 +371,14 @@ class IMAP():
                     flags = []
                     flags_match = re.match('.*FLAGS \((?P<flags>.*?)\)',
                                            email_id)
+                    # cleanup standard tags
                     if flags_match:
-                        flags = [f.lower().lstrip('\\')
-                                 for f in flags_match.group('flags').split()]
+                        for f in flags_match.group('flags').split():
+                            if f.title().lstrip('\\') in\
+                               self.standard_rw_flags:
+                                flags.append(f.lower().lstrip('\\'))
+                            else:
+                                flags.append(f)
                     email_obj = email.message_from_string(raw_email)
                     email_parsed = self.msg_class(
                         folder=self.selected_folder, uid=uid, flags=flags,
@@ -402,6 +432,10 @@ class IMAP():
             self.folder(self.operating_folder)
             self.operating_folder = None
         return
+
+    def make(self, folder_name):
+        """Alias for make_folder() function"""
+        return self.make_folder()
 
     @refresh_folders
     @is_logged

@@ -146,6 +146,77 @@ def test_wrong_login_credentials():
             ssl=True)
 
 
+def test_query_builder_size_parsing():
+    # Byte
+    q = Q()
+    q.smaller('3')
+    assert '3' in q.queries
+    # Byte
+    q = Q()
+    q.smaller(10)
+    assert '10' in q.queries
+    # Byte
+    q = Q()
+    q.smaller('3B')
+    assert '3' in q.queries
+    q = Q()
+    q.larger('4Byte')
+    assert '4' in q.queries
+    q = Q()
+    q.smaller('4 Bytes')
+    assert '4' in q.queries
+    # Kb
+    q = Q()
+    q.larger('1kb')
+    assert '1000' in q.queries
+    q = Q()
+    q.smaller('5 kB')
+    assert '5000' in q.queries
+    q = Q()
+    q.larger('5Kilobyte')
+    assert '5000' in q.queries
+    q = Q()
+    q.smaller('5 Kilobytes')
+    assert '5000' in q.queries
+    # Mb
+    q = Q()
+    q.larger('1mb')
+    assert '1000000' in q.queries
+    q = Q()
+    q.smaller('5 MB')
+    assert '5000000' in q.queries
+    q = Q()
+    q.larger('5Megabyte')
+    assert '5000000' in q.queries
+    q = Q()
+    q.smaller('5 Megabytes')
+    assert '5000000' in q.queries
+    # Gb
+    q = Q()
+    q.larger('1 gb')
+    assert '1000000000' in q.queries
+    q = Q()
+    q.smaller('2 GB')
+    assert '2000000000' in q.queries
+    q = Q()
+    q.larger('3Gigabyte')
+    assert '3000000000' in q.queries
+    q = Q()
+    q.smaller('5 gigabytes')
+    assert '5000000000' in q.queries
+
+    # exceptions
+    q = Q()
+    with pytest.raises(e.SizeParsingError):
+        q.smaller('5 boobabytes')
+    q = Q()
+    with pytest.raises(e.SizeParsingError):
+        q.larger('5.5 GB')
+    q = Q()
+    with pytest.raises(e.SizeParsingError):
+        q.smaller('5 GBKB')
+
+
 def test_search_params():
     box = imapy.connect(
         host=host,
@@ -520,6 +591,38 @@ def test_operations():
     with pytest.raises(e.InvalidSearchQuery):
             box.folder(test_folder).emails(-1, 10)
 
+    # test folders searching with regexp
+    # setup fake box.mail_folders variable and separator
+    box.mail_folders = [
+        # level 1
+        'Inbox',
+        'Some long name',
+        'Входящие',
+        'Длинное название ящика',
+        # level 2
+        'Inbox/Important stuff',
+        'Входящие/Важные сообщения',
+    ]
+    box.separator = '/'
+
+    assert 'Inbox' in box.folders('Inbox')
+    assert 'Inbox' in box.folders('*nbox')
+    assert 'Inbox' in box.folders('Inbo*')
+    assert 'Inbox' in box.folders('*nbo*')
+    assert 'Inbox' in box.folders('*n*o*')
+    assert 'Some long name' in box.folders('Some*long*')
+    assert 'Some long name' in box.folders('*o*n*e')
+    assert 'Some long name' in box.folders('*long*')
+    assert 'Длинное название ящика' in box.folders('*инн*')
+    assert 'Длинное название ящика' in box.folders('Длинное*')
+    assert 'Длинное название ящика' in box.folders('*ящика')
+    assert 'Inbox/Important stuff' in box.folders('Important*')
+    assert 'Inbox/Important stuff' in box.folders('*ant*')
+    assert 'Inbox/Important stuff' in box.folders('* stuff')
+    assert 'Входящие/Важные сообщения' in box.folders('Важные*')
+    assert 'Входящие/Важные сообщения' in box.folders('*сообщ*')
+    assert 'Входящие/Важные сообщения' in box.folders('* сообщения')
+
     # log out
     box.log_out()
     with pytest.raises(e.ImapyLoggedOut):
@@ -659,3 +762,21 @@ def test_parsing_sample_emails():
                 assert email_parsed['subject'] == "Meduza: 20 дней вместе"
                 assert email_parsed['date'] ==\
                     'Fri, 01 Nov 2011 16:21:09 +0000 (UTC)'
+
+            elif msg_num == 9:
+                assert email_parsed['from_WHOM'] == 'Vladimir'
+                assert 'Vladimir <xxxxxxxx@gmail.com>' in\
+                    email_parsed['from']
+                assert 'Vladimir <xxxxxxxx@gmail.com>' in email_parsed['from']
+                assert email_parsed['from_email'] == \
+                    'xxxxxxxx@gmail.com'
+                assert email_parsed['cc'] == []
+                assert email_parsed['subject'] == 'PDF test'
+                assert email_parsed['date'] ==\
+                    'Tue, 16 Nov 2015 17:20:30 +0200'
+                assert len(email_parsed['attachments']) > 0
+                assert 'data' in email_parsed['attachments'][0]
+                assert email_parsed['attachments'][0]['filename'] ==\
+                    'checkerboard.pdf'
+                assert email_parsed['attachments'][0]['content_type'] ==\
+                    'application/pdf'

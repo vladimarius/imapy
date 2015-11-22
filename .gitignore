@@ -1,0 +1,33 @@
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+/build/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
+# Coverage reports
+/htmlcov
+/__pycache__
+.coverage
+
+# Pip
+/pip-*
+
+# Venvs
+/venv*
+/env*
+
+# Misc dev stuff scripts
+/emails_parsing
+/misc
+demo.py
+demo*.py
+settings.py
+todo.txt
+setup.cfg
+
+.DS_Store
+.tox

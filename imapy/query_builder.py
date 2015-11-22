@@ -15,13 +15,57 @@
     :license: MIT, see LICENSE for more details.
 """
 import locale
+import re
 from datetime import datetime
 from datetime import date
 from .exceptions import (
-    SearchSyntaxNotSupported, WrongDateFormat
+    SearchSyntaxNotSupported, WrongDateFormat, SizeParsingError
 )
 
 loc = locale.getlocale()
+
+
+def convert_units(func):
+    """Decorator used to convert units (KB, MB, B) from string representation
+       to a number.
+    """
+    def wrapper(*args):
+        what = args[1]
+        if isinstance(what, int):
+            size = what
+        else:
+            what = what.strip('" \'').lower()
+            # Units: B, KB, MB, GB
+            # Byte, Bytes, KiloByte, KiloBytes, MegaByte, MegaBytes, GigaByte,
+            # Gigabytes
+            multiplicator = 1
+            if ('giga' in what or 'gb' in what):
+                multiplicator = 1000000000
+            elif ('mega' in what or 'mb' in what):
+                multiplicator = 1000000
+            elif ('kilo' in what or 'kb' in what):
+                multiplicator = 1000
+
+            # clean string
+            what = re.sub(
+                (
+                    "(((giga)|(mega)|(kilo))(bytes?))|"
+                    "(gb)|(mb)|(kb)|(bytes?)|(byte)|(b)"
+                ),
+                '', what, count=1)
+            try:
+                what = int(what.strip())
+            except ValueError:
+                raise SizeParsingError(
+                    "Incorrect format used to define message size: {what}."
+                    "Please use integer number + one of the following: "
+                    "B, Byte, Bytes, Megabyte, Megabytes, Gigabyte, Gigabytes".
+                    format(what=args[1])
+                )
+            size = multiplicator * what
+        f = func(*[args[0], size])
+        return f
+    return wrapper
 
 
 def check_date(func):
@@ -107,7 +151,7 @@ class Q:
         returns them"""
         if not self.non_ascii_params:
             for q in self.queries:
-                if not self.is_ascii(q):
+                if not isinstance(q, int) and not self.is_ascii(q):
                     self.non_ascii_params.append(q)
         return self.non_ascii_params
 
@@ -178,10 +222,11 @@ class Q:
         self.queries += ['KEYWORD', what]
         return self
 
+    @convert_units
     @quote
     def larger(self, what):
         """Messages with an [RFC-2822] size larger than the specified
-         number of octets."""
+         number of octets (1 Octet = 1 Byte)"""
         self.queries += ['LARGER', what]
         return self
 
@@ -248,10 +293,11 @@ class Q:
         self.queries += ['SINCE', what]
         return self
 
+    @convert_units
     @quote
     def smaller(self, what):
         """Messages with an [RFC-2822] size smaller than the specified
-         number of octets."""
+         number of octets (1 Octet = 1 Byte)"""
         self.queries += ['SMALLER', what]
         return self
 

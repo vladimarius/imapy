@@ -29,6 +29,21 @@ emails = box.folder('Inbox').emails(
     q.flagged().since('15-Feb-2014')
 )
 
+""" Search for emails having size less than
+    4 Kilobytes
+"""
+q = Q()
+emails = box.folder('Inbox').emails(
+    q.smaller('4 KB')
+    # Calls below are also OK:
+    # q.smaller('4 Kilobytes')
+    # q.smaller(4000) # <-- size in bytes
+
+    # Also fine, but most likely you wouldn't want to do that:
+    # q.larger('99 Mb')
+    # q.larger('3 gigabytes')
+)
+
 """ Search for emails in Inbox subfolder named "Secret"
     containing text 'Chewbacca' in body sent after
     September 5th, 2070 which were left unanswered

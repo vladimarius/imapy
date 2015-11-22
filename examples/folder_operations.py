@@ -15,6 +15,16 @@ box = imapy.connect(
 # get all folder names
 folders = box.folders()
 
+# search folders by keyword
+# names start with 'Inbo' (matches 'Inbox')
+folders = box.folders('Inbo*')
+# names end with 'ox' (matches 'Inbox')
+folders = box.folders('*ox')
+# names contain 'nb' (matches 'Inbox')
+folders = box.folders('*nb*')
+# names contain 'n', followed by 'o' somewere ahead (matches 'Inbox')
+folders = box.folders('*n*o*')
+
 # Create folder
 box.folder().make_folder('Imapy')
 
