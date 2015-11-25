@@ -640,7 +640,7 @@ def test_parsing_sample_emails():
             email_obj = email.message_from_string(utils.b_to_str(raw_email))
             email_parsed = EmailMessage(
                 folder='no_folder', uid=999, flags=[],
-                email_obj=email_obj, imap_obj=None)
+                email_obj=email_obj, imap_obj=None, email_sequence_id=900)
             msg_num = int(fn.split('.')[0])
 
             if msg_num == 1:
