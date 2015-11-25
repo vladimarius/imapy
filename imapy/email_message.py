@@ -40,6 +40,7 @@ class EmailMessage(CaseInsensitiveDict):
         self['headers'] = CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
         self['attachments'] = []
+        self['uid'] = self.uid
         self.parse()
 
     def clean_value(self, value, encoding):
