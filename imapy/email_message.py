@@ -41,6 +41,7 @@ class EmailMessage(CaseInsensitiveDict):
         self['flags'] = kwargs.pop('flags', None)
         self['attachments'] = []
         self['uid'] = self.uid
+        self['email_sequence_id'] = kwargs.pop('email_sequence_id', None)
         self.parse()
 
     def clean_value(self, value, encoding):
