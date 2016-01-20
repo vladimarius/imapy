@@ -217,6 +217,22 @@ def test_query_builder_size_parsing():
         q.smaller('5 GBKB')
 
 
+def test_logout():
+    with imapy.connect(
+            host=host, username=username, password=password, ssl=ssl) as box:
+        assert(box.logged_in is True)
+    assert(box.logged_in is False)
+
+    box = imapy.connect(
+        host=host,
+        username=username,
+        password=password,
+        ssl=ssl)
+    assert(box.logged_in is True)
+    box.logout()
+    assert(box.logged_in is False)
+
+
 def test_search_params():
     box = imapy.connect(
         host=host,

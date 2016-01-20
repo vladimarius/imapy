@@ -53,6 +53,12 @@ def refresh_folders(func):
 class IMAP():
     """Class used for interfacing between"""
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.logout()
+
     def __init__(self):
         """Initialize vars"""
         self.capabilities = self.separator = None
