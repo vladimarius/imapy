@@ -250,6 +250,8 @@ class IMAP():
         # detect message type
         if isinstance(message, MIMEBase):
             msg = utils.b(message.as_string())
+        elif isinstance(message, str):
+            msg = utils.b(message)
         else:
             raise UnknownEmailMessageType(
                 'Message should be a subclass of email.mime.base.MIMEBase')
