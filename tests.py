@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """ Tests for imapy """
 
 import pytest
@@ -8,11 +7,11 @@ import time
 import os
 import imapy
 import email
-from imapy import (imap, mail_folder, exceptions as e)
+import six
+from imapy import imap, mail_folder, exceptions as e
 from imapy.query_builder import Q
-from imapy.packages import (six)
 from imapy.email_message import EmailMessage
-from settings import (host, username, password, ssl)
+from settings import host, username, password, ssl
 from email.mime.text import MIMEText
 from imapy import utils
 
@@ -702,6 +701,8 @@ def test_parsing_sample_emails():
                 assert email_parsed['date'] ==\
                     'Thu, 30 Apr 2015 09:32:16 -0700'
                 assert 'The package could not be delivered' in\
+                    email_parsed['text'][0]['text_normalized']
+                assert 'Copyright © 2015 USPS' in\
                     email_parsed['text'][0]['text_normalized']
                 assert len(email_parsed['html']) == 0
 
