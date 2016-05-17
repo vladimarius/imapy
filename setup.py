@@ -6,7 +6,7 @@ def readme():
         return f.read()
 
 setup(name='imapy',
-      version='1.2.dev0',
+      version='1.2.dev2',
       description='Imap for humans',
       long_description=readme(),
       keywords='imap library, email processing, imaplib',
