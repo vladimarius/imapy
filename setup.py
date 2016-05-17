@@ -6,7 +6,7 @@ def readme():
         return f.read()
 
 setup(name='imapy',
-      version='1.1.1',
+      version='1.2.dev0',
       description='Imap for humans',
       long_description=readme(),
       keywords='imap library, email processing, imaplib',
@@ -17,6 +17,10 @@ setup(name='imapy',
       packages=['imapy', 'imapy.packages'],
       download_url='https://github.com/vladimarius/imapy',
       zip_safe=False,
+      install_requires=[
+          'IMAPClient',
+          'six',
+      ],
       classifiers=(
           'Intended Audience :: Developers',
           'Development Status :: 4 - Beta',
@@ -32,4 +36,4 @@ setup(name='imapy',
           'Topic :: Software Development :: Libraries',
           'Topic :: Utilities'
       ),
-      )
+)

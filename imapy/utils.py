@@ -9,8 +9,8 @@
     :copyright: (c) 2015 by Vladimir Goncharov.
     :license: MIT, see LICENSE for more details.
 """
-from .packages import six
-from .packages import imap_utf7
+import six
+from imapclient import imap_utf7
 
 if six.PY2:
     def utf7_to_unicode(text):

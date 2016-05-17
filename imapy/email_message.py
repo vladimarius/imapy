@@ -11,10 +11,10 @@
 """
 
 import re
+import six
 from email.header import decode_header
 from . import utils
 from .structures import CaseInsensitiveDict
-from .packages import six
 from .exceptions import (
     EmailParsingError,
 )
