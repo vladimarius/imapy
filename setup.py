@@ -18,6 +18,7 @@ setup(name='imapy',
       download_url='https://github.com/vladimarius/imapy',
       zip_safe=False,
       install_requires=[
+          'beautifulsoup4',
           'IMAPClient',
           'six',
       ],

@@ -23,7 +23,7 @@ if six.PY2:
 
     def u(text):
         """Convert to Unicode"""
-        return text.decode('utf-8', 'ignore')
+        return text.decode('utf-8')
 
     def to_str(text):
         """Convert to UTF-8"""
@@ -56,7 +56,7 @@ elif six.PY3:
 
     def b_to_str(text):
         """Convert to string"""
-        return text.decode('utf-8', 'ignore')
+        return text.decode('utf-8')
 
     def str_to_b(text):
         """Convert string to bytes"""

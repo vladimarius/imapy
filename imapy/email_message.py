@@ -13,6 +13,7 @@
 import re
 import six
 from email.header import decode_header
+from bs4.dammit import EncodingDetector
 from . import utils
 from .structures import CaseInsensitiveDict
 from .exceptions import (
@@ -127,10 +128,15 @@ class EmailMessage(CaseInsensitiveDict):
                 # multipart/* are just containers
                 if part.get_content_maintype() == 'multipart':
                     continue
+                # Empty part, maybe a separator at the end of the message
+                if not part.keys():
+                    continue
                 content_type = part.get_content_type()
+                content_charset = part.get_content_charset()
+                charset = content_charset or part.get_charset()
                 if content_type == 'text/plain':
                     # convert text
-                    text = utils.b_to_str(part.get_payload(decode=True))
+                    text = part.get_payload(decode=True).decode(charset)
                     self['text'].append(
                         {
                             'text': text,
@@ -141,8 +147,10 @@ class EmailMessage(CaseInsensitiveDict):
                     )
                 elif content_type == 'text/html':
                     # convert html
-                    html = utils.b_to_str(part.get_payload(decode=True))
-                    self['html'].append(html)
+                    html = part.get_payload(decode=True)
+                    if not charset:
+                        charset = EncodingDetector.find_declared_encoding(html, is_html=True)
+                    self['html'].append(html.decode(charset))
                 else:
                     try:
                         data = part.get_payload(decode=True)
