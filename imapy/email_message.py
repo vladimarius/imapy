@@ -112,9 +112,13 @@ class EmailMessage(CaseInsensitiveDict):
         """Parses email object and stores data so that email parts can be
         access with a dictionary syntax like msg['from'], msg['to']
         """
+        fallback_encoding = 'ascii'
         # check main body
         if not self.email_obj.is_multipart():
-            text = utils.b_to_str(self.email_obj.get_payload(decode=True))
+            charset = self.email_obj.get_content_charset() \
+                or self.email_obj.get_charset()
+            text = self.email_obj.get_payload(decode=True) \
+                .decode(charset or fallback_encoding)
             self['text'].append(
                 {
                     'text': text,
@@ -132,11 +136,12 @@ class EmailMessage(CaseInsensitiveDict):
                 if not part.keys():
                     continue
                 content_type = part.get_content_type()
-                content_charset = part.get_content_charset()
-                charset = content_charset or part.get_charset()
+                charset = part.get_content_charset() \
+                    or part.get_charset()
                 if content_type == 'text/plain':
                     # convert text
-                    text = part.get_payload(decode=True).decode(charset)
+                    text = part.get_payload(decode=True) \
+                        .decode(charset or fallback_encoding)
                     self['text'].append(
                         {
                             'text': text,
@@ -149,8 +154,10 @@ class EmailMessage(CaseInsensitiveDict):
                     # convert html
                     html = part.get_payload(decode=True)
                     if not charset:
-                        charset = EncodingDetector.find_declared_encoding(html, is_html=True)
-                    self['html'].append(html.decode(charset))
+                        charset = EncodingDetector \
+                            .find_declared_encoding(html, is_html=True)
+                    self['html'].append(
+                        html.decode(charset or fallback_encoding))
                 else:
                     try:
                         data = part.get_payload(decode=True)
