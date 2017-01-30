@@ -198,11 +198,12 @@ class IMAP():
         self.host = kwargs.pop('host', None)
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
+        self.access_token = kwargs.pop('access_token', None)
         self.ssl = kwargs.pop('ssl', None)
         # controls imaplib debugging, > 4 outputs all commands
         self.debug_level = kwargs.pop('debug_level', 0)
 
-        if self.ssl:
+        if self.ssl or self.access_token:
             self.lib = imaplib.IMAP4_SSL
             default_port = imaplib.IMAP4_SSL_PORT
         else:
@@ -213,7 +214,11 @@ class IMAP():
         try:
             self.imap = self.lib(self.host, port=self.port)
             self.imap.debug = self.debug_level
-            self.imap.login(self.username, self.password)
+            if self.access_token:
+                auth_string = "user={}\1auth=Bearer {}\1\1".format(self.username, self.access_token)
+                self.imap.authenticate('XOAUTH2', lambda _: auth_string)
+            else:
+                self.imap.login(self.username, self.password)
         # socket errors
         except socket.error as e:
             raise ConnectionRefused(e)
