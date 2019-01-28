@@ -162,7 +162,7 @@ class Q:
         return self
 
     def answered(self):
-        """Messages with the \Answered flag set."""
+        r"""Messages with the \Answered flag set."""
         self.queries += ['ANSWERED']
         return self
 
@@ -194,17 +194,17 @@ class Q:
         return self
 
     def deleted(self):
-        """Messages with the \Deleted flag set."""
+        r"""Messages with the \Deleted flag set."""
         self.queries += ['DELETED']
         return self
 
     def draft(self):
-        """Messages with the \Draft flag set."""
+        r"""Messages with the \Draft flag set."""
         self.queries.append('DRAFT')
         return self
 
     def flagged(self):
-        """Messages with the \Flagged flag set."""
+        r"""Messages with the \Flagged flag set."""
         self.queries += ['FLAGGED']
         return self
 
@@ -231,13 +231,13 @@ class Q:
         return self
 
     def new(self):
-        """Messages that have the \Recent flag set but not the \Seen flag.
+        r"""Messages that have the \Recent flag set but not the \Seen flag.
          This is functionally equivalent to "(RECENT UNSEEN)"."""
         self.queries += ['NEW']
         return self
 
     def old(self):
-        """Messages that do not have the \Recent flag set.  This is
+        r"""Messages that do not have the \Recent flag set.  This is
          functionally equivalent to "NOT RECENT" (as opposed to "NOT
          NEW")."""
         self.queries += ['OLD']
@@ -252,12 +252,12 @@ class Q:
         return self
 
     def recent(self):
-        """Messages that have the \Recent flag set."""
+        r"""Messages that have the \Recent flag set."""
         self.queries += ['RECENT']
         return self
 
     def seen(self):
-        """Messages that have the \Seen flag set."""
+        r"""Messages that have the \Seen flag set."""
         self.queries += ['SEEN']
         return self
 
@@ -330,22 +330,22 @@ class Q:
         return self
 
     def unanswered(self):
-        """Messages that do not have the \Answered flag set."""
+        r"""Messages that do not have the \Answered flag set."""
         self.queries += ['UNANSWERED']
         return self
 
     def undeleted(self):
-        """Messages that do not have the \Deleted flag set."""
+        r"""Messages that do not have the \Deleted flag set."""
         self.queries += ['UNDELETED']
         return self
 
     def undraft(self):
-        """Messages that do not have the \Draft flag set."""
+        r"""Messages that do not have the \Draft flag set."""
         self.queries += ['UNDRAFT']
         return self
 
     def unflagged(self):
-        """Messages that do not have the \Flagged flag set."""
+        r"""Messages that do not have the \Flagged flag set."""
         self.queries += ['UNFLAGGED']
         return self
 
@@ -356,6 +356,6 @@ class Q:
         return self
 
     def unseen(self):
-        """Messages that do not have the \Seen flag set."""
+        r"""Messages that do not have the \Seen flag set."""
         self.queries += ['UNSEEN']
         return self
