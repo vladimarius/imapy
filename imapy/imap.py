@@ -270,7 +270,8 @@ class IMAP():
         return False
 
     @is_logged
-    def emails(self, *args):
+    def emails(self, *args, **kwargs):
+        ids_only = kwargs['ids_only'] if 'ids_only' in kwargs else None
         """Returns emails based on search criteria or sequence set"""
         if len(args) > 2:
             raise InvalidSearchQuery(
@@ -282,7 +283,7 @@ class IMAP():
             if args[1] < 0:
                 raise InvalidSearchQuery(
                     "Emails() method second parameter cannot be negative.")
-            return self._get_emails_by_sequence(args[0], args[1])
+            return self._get_emails_by_sequence(args[0], args[1], ids_only=ids_only)
         elif len(args) == 1:
             if isinstance(args[0], Q):
                 query = args[0]
@@ -307,16 +308,17 @@ class IMAP():
                 else:
                     return []
             elif isinstance(args[0], int):
-                return self._get_emails_by_sequence(args[0])
+                return self._get_emails_by_sequence(args[0], ids_only=ids_only)
             else:
                 raise InvalidSearchQuery("Please construct query using query_"
                                          "builder Q class or call emails() "
                                          "method with integers as parameters.")
         else:
             # no parameters - fetch all emails in folder
-            return self._get_emails_by_sequence()
+            return self._get_emails_by_sequence(ids_only=ids_only)
+    
 
-    def _get_emails_by_sequence(self, from_id=None, to_id=None):
+    def _get_emails_by_sequence(self, from_id=None, to_id=None, ids_only=False):
         """Returns emails fetched by their sequence numbers.
         Sequence number indicates the place of email in folder where
         0 is the first email (the oldest) and N-th is the newest in a
@@ -348,7 +350,10 @@ class IMAP():
                 match = re.search('UID ([0-9]+)', utils.b_to_str(inputs))
                 if match:
                     uids.append(match.group(1))
-            return self._fetch_emails_info(uids)
+            if ids_only:
+                return uids
+            else:
+                return self._fetch_emails_info(uids)
         return False
 
     @is_logged
