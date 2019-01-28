@@ -14,15 +14,12 @@
     :copyright: (c) 2015 by Vladimir Goncharov.
     :license: MIT, see LICENSE for more details.
 """
-import locale
 import re
 from datetime import datetime
 from datetime import date
 from .exceptions import (
     SearchSyntaxNotSupported, WrongDateFormat, SizeParsingError
 )
-
-loc = locale.getlocale()
 
 
 def convert_units(func):
@@ -72,7 +69,6 @@ def check_date(func):
     """Decorator used to check the validity of supplied date."""
     def wrapper(*args, **kwargs):
         date_str = args[-1]
-        locale.setlocale(locale.LC_ALL, 'en_US')
         try:
             # 1-Feb-2027
             datetime.strptime(date_str, '%d-%b-%Y')
@@ -81,7 +77,6 @@ def check_date(func):
                 "Wrong date format used. Please "
                 "use \"en-US\" date format. For example: \"2-Nov-{year}\"".
                 format(year=date.today().year))
-        locale.setlocale(locale.LC_ALL, loc)
         f = func(*args, **kwargs)
         return f
     return wrapper
