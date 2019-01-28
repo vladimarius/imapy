@@ -149,7 +149,7 @@ class EmailMessage(CaseInsensitiveDict):
                     # rare cases when we get decoding error
                     except AssertionError:
                         data = None
-                    attachment_fname = decode_header(part.get_filename())
+                    attachment_fname = decode_header(part.get_filename() or '')
                     filename = self.clean_value(
                         attachment_fname[0][0], attachment_fname[0][1]
                     )
@@ -167,7 +167,8 @@ class EmailMessage(CaseInsensitiveDict):
                 msg_subject[0][0], msg_subject[0][1])
         # from
         # cleanup header
-        from_header_cleaned = re.sub('[\n\r\t]+', ' ', self.email_obj['from'])
+        from_header_cleaned = re.sub('[\n\r\t]+', ' ',
+                                     self.email_obj['from'] or '')
         msg_from = decode_header(from_header_cleaned)
         msg_txt = ''
         for part in msg_from:

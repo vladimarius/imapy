@@ -66,6 +66,13 @@ class MailFolder():
         max_depth = 0
         for raw_folder in raw_folders:
             # get name attributes, hierarchy delimiter, name
+            if not raw_folder:
+                continue
+
+            if isinstance(raw_folder, tuple):
+                len_suffix = '{%d}' % len(raw_folder[1])
+                raw_folder = raw_folder[0][:-len(len_suffix)] + raw_folder[1]
+
             # decode folder name
             raw_folder = utils.utf7_to_unicode(raw_folder)
             match = self.folder_parts.match(raw_folder)
@@ -92,12 +99,16 @@ class MailFolder():
             # box attributes
             attributes = match.group('attributes').split()
             attributes = [a.lstrip('\\') for a in attributes]
+
             # separator
-            self.separator = utils.to_str(match.group('separator'))
+            self.separator = utils.to_unescaped_str(match.group('separator'))
+
             # full name (unique identifier for mailbox)
             full_name = match.group('name')
+
             # full name with no path part
             name = full_name.split(self.separator).pop()
+
             # parent's name
             parent_name = False
             if full_name.count(self.separator):
@@ -105,6 +116,7 @@ class MailFolder():
                 parent_name = self.separator.join(
                     [i for i in parent_parts[:-1]]
                 )
+
             # depth
             depth = full_name.count(self.separator)
             if depth > max_depth:

@@ -29,6 +29,10 @@ if six.PY2:
         """Convert to UTF-8"""
         return text.encode('utf-8')
 
+    def to_unescaped_str(text):
+        """Convert escaped string to string"""
+        return text.decode('string_escape')
+
     def b_to_str(text):
         """Convert to string"""
         return text
@@ -53,6 +57,10 @@ elif six.PY3:
     def to_str(text):
         """Convert to UTF-8"""
         return text
+
+    def to_unescaped_str(text):
+        """Convert escaped string to string"""
+        return text.encode('utf-8').decode('unicode_escape')
 
     def b_to_str(text):
         """Convert to string"""
