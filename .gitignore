@@ -31,3 +31,4 @@ setup.cfg
 
 .DS_Store
 .tox
+.vscode
