@@ -1,3 +1,8 @@
+Changes with Imapy 1.2.0                                         29 Jan 2019
+    *) Feature: Added support to only retrieve a list of UIDs
+    *) Bugfix: Parsing bugfixes
+    *) Config: Reorganize tests and use tox + Travis for CI
+
 Changes with Imapy 1.1.1                                         20 Jan 2016
     *) Bugfix: Add context manager to IMAP class because gremlins had stolen
     it from previous release
