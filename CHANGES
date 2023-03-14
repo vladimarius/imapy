@@ -1,3 +1,6 @@
+Changes with Imapy 1.2.1                                         6 Mar 2023
+    *) Feature: Added authentication support
+
 Changes with Imapy 1.2.0                                         29 Jan 2019
     *) Feature: Added support to only retrieve a list of UIDs
     *) Bugfix: Parsing bugfixes

@@ -199,6 +199,8 @@ class IMAP():
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
         self.ssl = kwargs.pop('ssl', None)
+        self.auth_mechanism = kwargs.pop('auth_mechanism', None)
+        self.auth_object = kwargs.pop('auth_object', None)
         # controls imaplib debugging, > 4 outputs all commands
         self.debug_level = kwargs.pop('debug_level', 0)
 
@@ -213,7 +215,11 @@ class IMAP():
         try:
             self.imap = self.lib(self.host, port=self.port)
             self.imap.debug = self.debug_level
-            self.imap.login(self.username, self.password)
+            if self.auth_mechanism:
+                self.imap.authenticate(self.auth_mechanism, self.auth_object)
+            else:
+                self.imap.login(self.username, self.password)
+
         # socket errors
         except socket.error as e:
             raise ConnectionRefused(e)
@@ -316,7 +322,7 @@ class IMAP():
         else:
             # no parameters - fetch all emails in folder
             return self._get_emails_by_sequence(ids_only=ids_only)
-    
+
 
     def _get_emails_by_sequence(self, from_id=None, to_id=None, ids_only=False):
         """Returns emails fetched by their sequence numbers.

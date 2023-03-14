@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "imapy"
-version = "1.2.0"
+version = "1.2.1"
 description = "Imapy: Imap for Humans"
 authors = ["Vladimir Goncharov <vladimarius@gmail.com>"]
 license = "MIT"
