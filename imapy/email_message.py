@@ -40,6 +40,8 @@ class EmailMessage(CaseInsensitiveDict):
         self['headers'] = CaseInsensitiveDict()
         self['flags'] = kwargs.pop('flags', None)
         self['attachments'] = []
+        # add charset support
+        self['charset'] = ''
         self.parse()
 
     def clean_value(self, value, encoding):
@@ -113,7 +115,11 @@ class EmailMessage(CaseInsensitiveDict):
         """
         # check main body
         if not self.email_obj.is_multipart():
-            text = utils.b_to_str(self.email_obj.get_payload(decode=True))
+            # add charset support
+            self['charset'] = self.email_obj.get_content_charset()
+            # text = utils.b_to_str(self.email_obj.get_payload(decode=True))
+            # try to fix non utf-8 content decoding error
+            text = self.email_obj.get_payload(decode=True).decode(self.email_obj.get_content_charset())
             self['text'].append(
                 {
                     'text': text,
@@ -129,8 +135,13 @@ class EmailMessage(CaseInsensitiveDict):
                     continue
                 content_type = part.get_content_type()
                 if content_type == 'text/plain':
+                    # add charset support
+                    self['charset'] = part.get_content_charset()
                     # convert text
-                    text = utils.b_to_str(part.get_payload(decode=True))
+                    # text = utils.b_to_str(part.get_payload(decode=True))
+                    # try to fix non utf-8 content decoding error
+                    text = part.get_payload(decode=True).decode(part.get_content_charset())
+                    
                     self['text'].append(
                         {
                             'text': text,
@@ -140,8 +151,12 @@ class EmailMessage(CaseInsensitiveDict):
                         }
                     )
                 elif content_type == 'text/html':
+                    # add charset support
+                    self['charset'] = part.get_content_charset()
                     # convert html
-                    html = utils.b_to_str(part.get_payload(decode=True))
+                    # html = utils.b_to_str(part.get_payload(decode=True))
+                    # try to fix non utf-8 content decoding error
+                    html = part.get_payload(decode=True).decode(part.get_content_charset())
                     self['html'].append(html)
                 else:
                     try:
