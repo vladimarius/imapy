@@ -186,7 +186,7 @@ class IMAP():
         children = self.mail_folder_class.get_children(
             utils.u(self.selected_folder)
         )
-        return [utils.to_str(c) for c in children]
+        return [c for c in children]
 
     @is_logged
     def parent(self) -> 'IMAP':
@@ -469,7 +469,7 @@ class IMAP():
             parent_path = ''
             if self.selected_folder:
                 parent_path = self.selected_folder + self.separator
-            name = utils.u_to_utf7(
+            name = utils.str_to_utf7(
                 '"' + utils.u(parent_path) + utils.u(n) + '"'
             )
             self.imap.create(name)
@@ -481,7 +481,7 @@ class IMAP():
         """Copy message with specified UID onto end of new_mailbox."""
         self.imap.uid('COPY', uid,
                       b'"' +
-                      utils.u_to_utf7(utils.u(mailbox)) +
+                      utils.str_to_utf7(utils.u(mailbox)) +
                       b'"')
         copy_uid_data = self.imap.untagged_responses['COPYUID']
         for i, val in reversed(list(enumerate(copy_uid_data[:]))):
@@ -555,7 +555,7 @@ class IMAP():
             folder_path = self.selected_folder.split(sep)[:-1]
             folder_name = sep.join(folder_path) + sep + folder_name
         folder_to_rename = self.selected_folder_utf7
-        new_name = utils.u_to_utf7(folder_name)
+        new_name = utils.str_to_utf7(folder_name)
         self.folder()
         self.imap.rename(
             b'"' + folder_to_rename + b'"',
@@ -580,7 +580,7 @@ class IMAP():
             for f_name in folder_names:
                 self.imap.delete(
                     b'"' +
-                    utils.u_to_utf7(
+                    utils.str_to_utf7(
                         utils.u(f_name)
                     ) +
                     b'"'

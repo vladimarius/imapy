@@ -105,7 +105,7 @@ def test_emails_by_query(mock_imap):
     mock_imap._fetch_emails_info = Mock(return_value=[Mock(spec=EmailMessage)] * 3)
     emails = mock_imap.emails(query)
     assert len(emails) == 3
-    mock_imap.imap.uid.assert_called_once_with('SEARCH', 'FROM', 'test@example.com', 'SEEN')
+    mock_imap.imap.uid.assert_called_once_with('SEARCH', 'FROM', '"test@example.com"', 'SEEN')
 
 
 def test_mark(mock_imap):

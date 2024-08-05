@@ -89,7 +89,7 @@ class MailFolder():
             depth = full_name.count(self.separator)
             max_depth = max(max_depth, depth)
 
-            self.folders.append(utils.to_str(full_name))
+            self.folders.append(full_name)
 
             obj_list[full_name] = {
                 'full_name': full_name,

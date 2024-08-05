@@ -24,10 +24,6 @@ def u(text):
     """Convert to Unicode"""
     return text
 
-def to_str(text):
-    """Convert to UTF-8"""
-    return text
-
 def to_unescaped_str(text):
     """Convert escaped string to string"""
     return text.encode('utf-8').decode('unicode_escape')
@@ -39,8 +35,3 @@ def b_to_str(text):
 def str_to_b(text):
     """Convert string to bytes"""
     return text.encode('utf-8')
-
-
-def u_to_utf7(text):
-    """Convert to UTF-7"""
-    return imap_utf7.encode(text)
