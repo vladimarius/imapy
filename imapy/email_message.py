@@ -171,14 +171,6 @@ class EmailMessage:
         return self._flags
 
     @property
-    def from_address(self) -> str:
-        return self._from
-
-    @property
-    def from_whom(self) -> str:
-        return self._from_whom
-
-    @property
     def subject(self) -> str:
         return self._subject
 
