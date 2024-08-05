@@ -72,12 +72,13 @@ def check_date(func: Callable) -> Callable:
         return func(*args, **kwargs)
     return wrapper
 
-
 def quote(func: Callable) -> Callable:
     """Decorator used to quote query parameters."""
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         last_arg = str(args[-1]).strip('"')
-        if " " in last_arg:
+        # Characters which need to be escaped
+        special_characters_pattern = r'[ @\(\)\"\[\\\]]'
+        if re.search(special_characters_pattern, last_arg):
             last_arg = f'"{last_arg}"'
         new_args = args[:-1] + (last_arg,)
         return func(*new_args, **kwargs)
@@ -103,16 +104,13 @@ class Q:
     def get_query(self) -> List[Any]:
         """Returns list containing queries"""
         non_ascii = self._get_non_ascii_params()
+
         if len(non_ascii) > 1:
             raise SearchSyntaxNotSupported(
                 "Searching using more than 1 parameter "
                 "containing non-ascii characters is "
                 "not supported")
         if non_ascii:
-            for k, v in enumerate(self.queries[:]):
-                if v == non_ascii[0]:
-                    del self.queries[k]
-                    self.queries.append(self.queries.pop(k - 1))
             if 'CHARSET' not in self.queries:
                 self.queries = ['CHARSET', 'UTF-8'] + self.queries
 
@@ -199,7 +197,7 @@ class Q:
     def larger(self, what: Any) -> 'Q':
         """Messages with an [RFC-2822] size larger than the specified
          number of octets (1 Octet = 1 Byte)"""
-        self.queries += ['LARGER', what]
+        self.queries += ['LARGER', str(what)]
         return self
 
     def new(self) -> 'Q':
