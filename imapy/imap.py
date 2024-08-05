@@ -165,6 +165,7 @@ class IMAP():
 
     def _save_folder_capabilities(self, folder_name: str) -> None:
         """Saves folder capabilities in class variable if not present"""
+
         if folder_name not in self.folder_capabilities:
             response, result = self.imap.capability()
             self.folder_capabilities[folder_name] = \
@@ -459,6 +460,7 @@ class IMAP():
             names = [folder_name]
         else:
             names = folder_name
+
         for n in names:
             if self.separator in n:
                 raise InvalidFolderName(
@@ -559,8 +561,8 @@ class IMAP():
             b'"' + folder_to_rename + b'"',
             b'"' + new_name + b'"'
         )
-        self._update_folder_info()
         self.folder(utils.b_to_str(new_name))
+
         return self
 
     @refresh_folders
