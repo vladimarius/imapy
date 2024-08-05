@@ -1,15 +1,66 @@
 [tool.poetry]
 name = "imapy"
-version = "1.2.1"
+version = "2.0.0"
 description = "Imapy: Imap for Humans"
 authors = ["Vladimir Goncharov <vladimarius@gmail.com>"]
 license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/vladimarius/imapy"
+repository = "https://github.com/vladimarius/imapy"
+keywords = ["imap", "email", "library"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Email",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = "^3.9"  # Updated to 3.9+
+flake8 = "^7.1.1"
 
 [tool.poetry.dev-dependencies]
+pytest = "^6.2"
+tox = "^3.24"
+flake8 = "^7.0"
+mypy = "^0.910"
+black = "^23.7.0"
+click = "^8.0.4"
+pre-commit = "^3.8.0"
+
+[tool.poetry.scripts]
+format = "scripts:format"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.8.0"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/vladimarius/imapy/issues"
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
