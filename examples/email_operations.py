@@ -19,7 +19,7 @@ def get_ipv4(headers):
     return 'ip not found'
 
 
-box = imapy.connect(
+em = imapy.connect(
     host='host',
     username='username',
     password='password',
@@ -27,14 +27,14 @@ box = imapy.connect(
 )
 
 # first create some folders in the root email directory
-box.folder().make_folder(['Imapy1', 'Imapy2'])
+em.folder().make_folder(['Imapy1', 'Imapy2'])
 
-if 'Inbox' in box.folders():
+if 'Inbox' in em.folders():
     """
         Copying emails
     """
     # select first 3 emails in 'Inbox' (the oldest ones)
-    emails = box.folder('Inbox').emails(1, 3)
+    emails = em.folder('Inbox').emails(1, 3)
     for em in emails:
         # copy each email to 'Imapy1', flagging it and making unseen
         em.copy('Imapy1').mark(['flagged', 'unseen'])
@@ -43,18 +43,18 @@ if 'Inbox' in box.folders():
         Moving emails
     """
     # move 1 email from 'Imapy1' to 'Imapy2'
-    box.folder('Imapy1').email(1).move('Imapy2')
+    em.folder('Imapy1').email(1).move('Imapy2')
 
     """
         Marking emails
     """
-    box.folder('Imapy2').email(1).mark(['unflagged'])
+    em.folder('Imapy2').email(1).mark(['unflagged'])
 
     """
         Message headers
     """
     # get list of email headers for an email
-    email_data = box.folder('Imapy2').email(1)
+    email_data = em.folder('Imapy2').email(1)
     headers = email_data['headers']
 
     # get ip of sender

@@ -21,7 +21,7 @@ def get_text_email(sender, recepient, subject, text):
     return msg
 
 
-box = imapy.connect(
+em = imapy.connect(
     host='host',
     username='username',
     password='password',
@@ -34,7 +34,7 @@ box = imapy.connect(
 '''
 # find those emails
 q = Q()
-emails = box.folder('INBOX').emails(
+emails = em.folder('INBOX').emails(
     q.subject('help me').unseen()
 )
 
@@ -51,9 +51,7 @@ s.login(user, password)
 for em in emails:
     # get all email headers (simply for demonstration)
     headers = em.headers
-    from_name = em.from_whom or 'Sir/Madam'
-    from_email = em.from_email
-    from_subject = em.subject
+    from_name = em.sender.name or 'Sir/Madam'
 
     """ All text contents and attachments are stored in email['text'] list
     while html contents/attachments in email['html'].
@@ -82,13 +80,13 @@ In reply to your message:
     """
 
     # Send the message via SMTP server (Gmail 'test@gmail.com')
-    msg = get_text_email(user, from_email, 'Re: ' + from_subject, email_text)
+    msg = get_text_email(user, em.sender.email, 'Re: ' + em.subject, email_text)
 
     # send email
-    s.sendmail(user, [from_email], msg.as_string())
+    s.sendmail(user, [em.sender.email], msg.as_string())
 
     # mark message as read
     em.mark('seen')
 
 s.quit()
-box.logout()
+em.logout()

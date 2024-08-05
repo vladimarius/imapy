@@ -3,8 +3,9 @@
 Shows how to append email to folder
 """
 
-import imapy
 from email.mime.text import MIMEText
+
+import imapy
 
 
 def get_text_email(sender, recepient, subject, text):
@@ -16,7 +17,7 @@ def get_text_email(sender, recepient, subject, text):
 
     return msg
 
-box = imapy.connect(
+em = imapy.connect(
     host='host',
     username='username',
     password='password',
@@ -25,7 +26,7 @@ box = imapy.connect(
 
 
 # create 'Imapy' folder
-box.folder().make_folder('Imapy')
+em.folder().make_folder('Imapy')
 
 # prepare email
 text_email = get_text_email(
@@ -35,7 +36,7 @@ text_email = get_text_email(
     'Hi there, dear Imapy user :)')
 
 # append email to folder
-box.folder('Imapy').append(text_email, flags=['flagged'])
+em.folder('Imapy').append(text_email, flags=['flagged'])
 
 # logout
-box.logout()
+em.logout()

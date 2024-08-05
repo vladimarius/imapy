@@ -6,7 +6,7 @@ Shows how to save email attachments with Imapy to a file
 import imapy
 from imapy.query_builder import Q
 
-box = imapy.connect(
+em = imapy.connect(
     host='host',
     username='username',
     password='password',
@@ -19,14 +19,14 @@ box = imapy.connect(
 """
 # select the required email
 q = Q()
-emails = box.folder('Inbox').emails(
+emails = em.folder('Inbox').emails(
     q.subject("PDF test")
 )
 
 # get attachment info
 if len(emails):
     email = emails[0]
-    for attachment in email['attachments']:
+    for attachment in email.attachments:
         # save each attachment in current directory
         file_name = attachment['filename']
         content_type = attachment['content_type']
@@ -36,4 +36,4 @@ if len(emails):
             f.write(data)
 
 # logout
-box.logout()
+em.logout()

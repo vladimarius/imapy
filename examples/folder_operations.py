@@ -5,7 +5,7 @@ Shows some folder operations with Imapy
 
 import imapy
 
-box = imapy.connect(
+em = imapy.connect(
     host='host',
     username='username',
     password='password',
@@ -13,42 +13,42 @@ box = imapy.connect(
 )
 
 # get all folder names
-folders = box.folders()
+folders = em.folders()
 
 # search folders by keyword
 # names start with 'Inbo' (matches 'Inbox')
-folders = box.folders('Inbo*')
+folders = em.folders('Inbo*')
 # names end with 'ox' (matches 'Inbox')
-folders = box.folders('*ox')
+folders = em.folders('*ox')
 # names contain 'nb' (matches 'Inbox')
-folders = box.folders('*nb*')
+folders = em.folders('*nb*')
 # names contain 'n', followed by 'o' somewere ahead (matches 'Inbox')
-folders = box.folders('*n*o*')
+folders = em.folders('*n*o*')
 
 # Create folder
-box.folder().make_folder('Imapy')
+em.folder().make_folder('Imapy')
 
 # Create subfolders
 # (note how you can pass several folder names in a list)
-box.folder('Imapy').make_folder(['Imapy subfolder', 'Kamikaze folder'])
+em.folder('Imapy').make_folder(['Imapy subfolder', 'Kamikaze folder'])
 
 # Get list of children names of a folder
-children = box.folder('Imapy').children()
+children = em.folder('Imapy').children()
 for c in children:
     print(f"{c} is a child of 'Imapy' folder")
 
 # Rename subfolder
-subfolder_name = 'Imapy' + box.separator + 'Imapy subfolder'
-box.folder(subfolder_name).rename('My precious')
+subfolder_name = 'Imapy' + em.separator + 'Imapy subfolder'
+em.folder(subfolder_name).rename('My precious')
 
 # Delete folder
-delete_name = 'Imapy' + box.separator + 'Kamikaze folder'
-box.folder(delete_name).delete()
+delete_name = 'Imapy' + em.separator + 'Kamikaze folder'
+em.folder(delete_name).delete()
 
 # Select parent folder from child folder
-new_subfolder_name = 'Imapy' + box.separator + 'My precious'
-parent = box.folder(new_subfolder_name).parent()
+new_subfolder_name = 'Imapy' + em.separator + 'My precious'
+parent = em.folder(new_subfolder_name).parent()
 parent.rename('Imapy renamed')
 
 # logout
-box.logout()
+em.logout()
