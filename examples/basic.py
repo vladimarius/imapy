@@ -37,8 +37,8 @@ box.folder('Awesome').make_folder('Even awesomer')
 emails = box.folder('Inbox').emails(-5)
 
 for email in emails:
-    print ('Email from: {0}'.format(email['from']))
-    print ('Email subject: {0}'.format(email['subject']))
+    print (f"Email from: {email.from}")
+    print (f"Email subject: {email.subject}")
 
 # copy last 3 emails from 'Inbox' to 'Awesome/Even awesomer'
 # folder, make them flagged and unseen

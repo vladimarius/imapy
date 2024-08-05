@@ -4,10 +4,11 @@ Shows how to check for specific email, reply to it (inserting original
 message text) and mark processed message as read.
 """
 
-import imapy
-from imapy.query_builder import Q
 import smtplib
 from email.mime.text import MIMEText
+
+import imapy
+from imapy.query_builder import Q
 
 
 def get_text_email(sender, recepient, subject, text):
@@ -49,10 +50,10 @@ s.login(user, password)
 # reply to each email
 for em in emails:
     # get all email headers (simply for demonstration)
-    headers = em['headers']
-    from_name = em['from_whom'] or 'Sir/Madam'
-    from_email = em['from_email']
-    from_subject = em['subject']
+    headers = em.headers
+    from_name = em.from_whom or 'Sir/Madam'
+    from_email = em.from_email
+    from_subject = em.subject
 
     """ All text contents and attachments are stored in email['text'] list
     while html contents/attachments in email['html'].
@@ -63,8 +64,8 @@ for em in emails:
         'links' - list of links found in text
     """
 
-    original_message = em['text'][0]['text']
-    email_text = """
+    original_message = em.text[0]['text']
+    email_text = f"""
 Dear {from_name},
 
 Your request has been received and processed.
@@ -78,8 +79,7 @@ In reply to your message:
 --------------------------
 {original_message}
 --------------------------
-    """.format(from_name=from_name,
-               original_message=original_message)
+    """
 
     # Send the message via SMTP server (Gmail 'test@gmail.com')
     msg = get_text_email(user, from_email, 'Re: ' + from_subject, email_text)

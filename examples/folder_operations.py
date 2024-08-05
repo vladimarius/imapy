@@ -35,7 +35,7 @@ box.folder('Imapy').make_folder(['Imapy subfolder', 'Kamikaze folder'])
 # Get list of children names of a folder
 children = box.folder('Imapy').children()
 for c in children:
-    print("{0} is a child of 'Imapy' folder".format(c))
+    print(f"{c} is a child of 'Imapy' folder")
 
 # Rename subfolder
 subfolder_name = 'Imapy' + box.separator + 'Imapy subfolder'

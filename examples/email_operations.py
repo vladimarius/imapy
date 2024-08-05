@@ -3,8 +3,9 @@
 Shows how to deal with email messages in Imapy
 """
 
-import imapy
 import re
+
+import imapy
 
 
 def get_ipv4(headers):
@@ -57,10 +58,10 @@ if 'Inbox' in box.folders():
     headers = email_data['headers']
 
     # get ip of sender
-    print('Ip of a sender: {0}'.format(get_ipv4(headers)))
+    print(f"Ip of a sender: {get_ipv4(headers)}")
 
     # show message id
     # (note that you may get headers in case-insensitive manner
     # so headers['Message-id'] and headers['MESSAGE-id'] refer
     # to the same object)
-    print('Message id: {0}'.format(headers['Message-Id'][0]))
+    print(f"Message id: {headers['Message-Id'][0]}")
