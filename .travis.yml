@@ -1,13 +1,22 @@
 language: python
 python:
-  - "3.7"
-  - "3.8"
   - "3.9"
   - "3.10"
   - "3.11"
   - "3.12"
 install:
-  - travis_retry pip install -U tox-travis twine wheel codecov
-script: tox
+  - pip install poetry
+  - poetry install
+script:
+  - poetry run black --check .
+  - poetry run pytest
+  - poetry run flake8
+  - poetry run mypy imapy
 after_success:
-  - codecov
+  - poetry run codecov
+deploy:
+  provider: script
+  script: poetry build && poetry publish
+  on:
+    tags: true
+    python: "3.11"
