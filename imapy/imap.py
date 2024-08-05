@@ -155,17 +155,14 @@ class IMAP:
         if folder_name:
             if folder_name not in self.mail_folders:
                 raise NonexistentFolderError(
-                    f"The folder you are trying to select ({folder_name})"
-                    " doesn't exist"
+                    f"The folder you are trying to select ({folder_name}) doesn't exist"
                 )
-            # close previously selected folder (if any)
             if self.selected_folder:
                 self.imap.close()
             self.selected_folder = folder_name
             self.selected_folder_utf7 = utils.str_to_utf7(self.selected_folder)
-            # select folder on server
-            self.imap.select(b'"' + self.selected_folder_utf7 + b'"')
-            # get folder capabilities
+            if self.selected_folder_utf7 is not None:
+                self.imap.select('"' + self.selected_folder_utf7.decode() + '"')
             self._save_folder_capabilities(self.selected_folder)
         else:
             if self.selected_folder:
@@ -199,10 +196,12 @@ class IMAP:
         """Selects folder for folder operations which is a parent of a current
         folder.
         """
-        self.selected_folder = self.mail_folder_class.get_parent_name(
-            self.selected_folder
-        )
-        self.selected_folder_utf7 = utils.str_to_utf7(self.selected_folder)
+        if self.selected_folder:
+            self.selected_folder = self.mail_folder_class.get_parent_name(
+                self.selected_folder
+            )
+            if self.selected_folder:
+                self.selected_folder_utf7 = utils.str_to_utf7(self.selected_folder)
         return self
 
     def connect(self, **kwargs) -> "IMAP":
@@ -216,14 +215,9 @@ class IMAP:
         self.auth_object: Any = kwargs.pop("auth_object", None)
         # controls imaplib debugging, > 4 outputs all commands
         self.debug_level: int = kwargs.pop("debug_level", 0)
-
-        if self.ssl:
-            self.lib = imaplib.IMAP4_SSL
-            default_port = imaplib.IMAP4_SSL_PORT
-        else:
-            self.lib = imaplib.IMAP4
-            default_port = imaplib.IMAP4_PORT
-        self.port: int = kwargs.pop("port", default_port)
+        self.port: int = kwargs.pop(
+            "port", imaplib.IMAP4_SSL_PORT if self.ssl else imaplib.IMAP4_PORT
+        )
 
         try:
             self.imap = self.lib(self.host, port=self.port)
@@ -236,8 +230,6 @@ class IMAP:
         # socket errors
         except socket.error as e:
             raise ConnectionRefused(e)
-        except socket.gaierror as e:
-            raise InvalidHost(e)
 
         self.logged_in = True
         self.capabilities = self.imap.capabilities
@@ -539,27 +531,28 @@ class IMAP:
             "uidnext": None,
             "uidvalidity": None,
         }
-        _status, result = self.imap.status(
-            b'"' + self.selected_folder_utf7 + b'"',
-            "(MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)",
-        )
-        if result:
-            where = utils.b_to_str(result[0])
-            messages = re.search(r"MESSAGES ([0-9]+)", where)
-            if messages:
-                info["total"] = int(messages.group(1))
-            recent = re.search(r"RECENT ([0-9]+)", where)
-            if recent:
-                info["recent"] = int(recent.group(1))
-            unseen = re.search(r"UNSEEN ([0-9]+)", where)
-            if unseen:
-                info["unseen"] = int(unseen.group(1))
-            uidnext = re.search(r"UIDNEXT ([0-9]+)", where)
-            if uidnext:
-                info["uidnext"] = int(uidnext.group(1))
-            uidvalidity = re.search(r"UIDVALIDITY ([0-9]+)", where)
-            if uidvalidity:
-                info["uidvalidity"] = int(uidvalidity.group(1))
+        if self.selected_folder_utf7:
+            _status, result = self.imap.status(
+                b'"' + self.selected_folder_utf7 + b'"',
+                "(MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)",
+            )
+            if result:
+                where = utils.b_to_str(result[0])
+                messages = re.search(r"MESSAGES ([0-9]+)", where)
+                if messages:
+                    info["total"] = int(messages.group(1))
+                recent = re.search(r"RECENT ([0-9]+)", where)
+                if recent:
+                    info["recent"] = int(recent.group(1))
+                unseen = re.search(r"UNSEEN ([0-9]+)", where)
+                if unseen:
+                    info["unseen"] = int(unseen.group(1))
+                uidnext = re.search(r"UIDNEXT ([0-9]+)", where)
+                if uidnext:
+                    info["uidnext"] = int(uidnext.group(1))
+                uidvalidity = re.search(r"UIDVALIDITY ([0-9]+)", where)
+                if uidvalidity:
+                    info["uidvalidity"] = int(uidvalidity.group(1))
 
         return info
 
@@ -569,14 +562,21 @@ class IMAP:
         """Renames currently selected folder"""
         sep = self.separator
         folder_name = utils.u(folder_name)
-        if (sep in self.selected_folder) and (sep not in folder_name):
+        if (
+            sep
+            and folder_name
+            and (sep in self.selected_folder)
+            and (sep not in folder_name)
+        ):
             folder_path = self.selected_folder.split(sep)[:-1]
             folder_name = sep.join(folder_path) + sep + folder_name
+
         folder_to_rename = self.selected_folder_utf7
-        new_name = utils.str_to_utf7(folder_name)
-        self.folder()
-        self.imap.rename(b'"' + folder_to_rename + b'"', b'"' + new_name + b'"')
-        self.folder(utils.b_to_str(new_name))
+        if folder_to_rename:
+            new_name = utils.str_to_utf7(folder_name)
+            self.folder()
+            self.imap.rename(b'"' + folder_to_rename + b'"', b'"' + new_name + b'"')
+            self.folder(utils.b_to_str(new_name))
 
         return self
 
@@ -596,6 +596,7 @@ class IMAP:
                 self.imap.delete(b'"' + utils.str_to_utf7(utils.u(f_name)) + b'"')
         else:
             current_folder = self.selected_folder_utf7
-            self.folder()
-            self.imap.delete(b'"' + current_folder + b'"')
+            if current_folder:
+                self.folder()
+                self.imap.delete(b'"' + current_folder + b'"')
         return self
