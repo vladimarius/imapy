@@ -37,6 +37,8 @@ class EmailParser:
             name, email = match.groups()
             return self.EmailContact(name.strip(), email.strip())
         else:
+            if "@" in info:
+                return self.EmailContact("", info.strip())
             raise ValueError("Invalid email format. Expected 'Name <email@domain.com>'")
 
     def parse_multiple_emails(self, info: str) -> List['EmailParser.EmailContact']:
@@ -194,12 +196,12 @@ class EmailMessage:
         return text
 
     def _get_links(self, text: str) -> List[str]:
-        links = []
-        matches = re.findall(
-            r'(?<=[\s^\<])(?P<link>https?\:\/\/.*?)(?=[\s\>$])', text, re.I)
+        links = set([])
+        matches = re.findall(r'(https?://\S+?)(?=\s|$)', text, re.I | re.M)
         if matches:
-            links.extend(matches)
-        return list(set(links))
+            for m in matches:
+                links.add(m)
+        return list(links)
 
     def mark(self, flags: Union[EmailFlag, List[EmailFlag]]) -> Any:
         if not isinstance(flags, list):
@@ -224,7 +226,7 @@ class EmailMessage:
 
     def parse(self) -> None:
         if not self._email_obj.is_multipart():
-            text = utils.b_to_str(self._email_obj.get_payload(decode=True))
+            text = utils.b_to_str(self._email_obj.get_payload(decode=True)).rstrip()
             self._text.append(
                 {
                     'text': text,
@@ -238,7 +240,7 @@ class EmailMessage:
                     continue
                 content_type = part.get_content_type()
                 if content_type == 'text/plain':
-                    text = utils.b_to_str(part.get_payload(decode=True))
+                    text = utils.b_to_str(part.get_payload(decode=True)).rstrip()
                     self._text.append(
                         {
                             'text': text,
@@ -247,7 +249,7 @@ class EmailMessage:
                         }
                     )
                 elif content_type == 'text/html':
-                    html = utils.b_to_str(part.get_payload(decode=True))
+                    html = utils.b_to_str(part.get_payload(decode=True)).rstrip()
                     self._html.append(html)
                 else:
                     try:
