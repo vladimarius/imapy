@@ -11,6 +11,7 @@
 """
 import email
 import re
+from dataclasses import dataclass
 from email.header import decode_header
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Union
@@ -99,6 +100,16 @@ class EmailFlag(Enum):
     RECENT = auto()
 
 
+@dataclass
+class EmailAttachment:
+    """Class for storing email attachaments"""
+    filename: str
+    data: str
+    content_type: str
+
+    def __repr__(self) -> str:
+        return f"<{self.filename} ({self.content_type})>"
+
 class EmailMessage:
     """Class for parsing email messages"""
 
@@ -115,7 +126,7 @@ class EmailMessage:
         self._text: List[Dict[str, str]] = []
         self._html: List[str] = []
         self._headers: Dict[str, List[str]] = {}
-        self._attachments: List[Dict[str, Any]] = []
+        self._attachments: List[EmailAttachment] = []
         self._date: Optional[str] = None
 
         self.parse()
@@ -260,12 +271,10 @@ class EmailMessage:
                     filename = self.clean_value(
                         attachment_fname[0][0], attachment_fname[0][1]
                     )
-                    attachment = {
-                        'filename': filename,
-                        'data': data,
-                        'content_type': content_type
-                    }
-                    self._attachments.append(attachment)
+
+                    self._attachments.append(
+                        EmailAttachment(filename=filename, data=data, content_type=content_type)
+                    )
 
         if 'subject' in self._email_obj:
             msg_subject = decode_header(self._email_obj['subject'])

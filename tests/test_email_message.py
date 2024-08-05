@@ -158,9 +158,9 @@ def test_email_message_parse_attachment(sample_email_obj):
     )
 
     assert len(email_message.attachments) == 1
-    assert email_message.attachments[0]['filename'] == 'test.bin'
-    assert email_message.attachments[0]['data'] == attachment_data
-    assert email_message.attachments[0]['content_type'] == 'application/octet-stream'
+    assert email_message.attachments[0].filename == 'test.bin'
+    assert email_message.attachments[0].data == attachment_data
+    assert email_message.attachments[0].content_type == 'application/octet-stream'
 
 def test_email_message_cc(sample_email_obj):
     sample_email_obj['CC'] = 'cc@example.com'

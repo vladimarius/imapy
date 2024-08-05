@@ -28,9 +28,9 @@ if len(emails):
     email = emails[0]
     for attachment in email.attachments:
         # save each attachment in current directory
-        file_name = attachment['filename']
-        content_type = attachment['content_type']
-        data = attachment['data']
+        file_name = attachment.filename
+        content_type = attachment.content_type
+        data = attachment.data
 
         with open(file_name, 'w') as f:
             f.write(data)

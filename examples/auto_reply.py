@@ -53,10 +53,10 @@ for em in emails:
     headers = em.headers
     from_name = em.sender.name or 'Sir/Madam'
 
-    """ All text contents and attachments are stored in email['text'] list
-    while html contents/attachments in email['html'].
+    """ All text contents and attachments are stored in `email.text` object
+    while html contents/attachments in `email.html`
 
-    Information about text is stored as a dictionary having 3 values:
+    Information about text is stored as an object having 3 attributes:
         'text' - unmodified text
         'text_normalized' - text with spaces/tabs/newlines stripped
         'links' - list of links found in text

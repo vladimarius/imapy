@@ -111,8 +111,8 @@ def test_parsing_sample_emails():
                 assert email_parsed.date == 'Tue, 16 Nov 2015 17:20:30 +0200'
 
                 assert len(email_parsed.attachments) > 0
-                assert 'data' in email_parsed.attachments[0]
-                assert email_parsed.attachments[0]['filename'] ==\
+                assert hasattr(email_parsed.attachments[0], 'data')
+                assert email_parsed.attachments[0].filename ==\
                     'checkerboard.pdf'
-                assert email_parsed.attachments[0]['content_type'] ==\
+                assert email_parsed.attachments[0].content_type ==\
                     'application/pdf'
