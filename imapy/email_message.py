@@ -32,8 +32,8 @@ class EmailParser:
         def __repr__(self) -> str:
             return f"{self.name} <{self.email}>"
 
-    def parse_email_info(self, info: str) -> 'EmailParser.EmailContact':
-        match: Optional[re.Match[str]] = re.match(r'(.*?)\s*<(.+)>', info)
+    def parse_email_info(self, info: str) -> "EmailParser.EmailContact":
+        match: Optional[re.Match[str]] = re.match(r"(.*?)\s*<(.+)>", info)
         if match:
             name, email = match.groups()
             return self.EmailContact(name.strip(), email.strip())
@@ -42,17 +42,20 @@ class EmailParser:
                 return self.EmailContact("", info.strip())
             raise ValueError("Invalid email format. Expected 'Name <email@domain.com>'")
 
-    def parse_multiple_emails(self, info: str) -> List['EmailParser.EmailContact']:
-        emails = re.split(r',\s*(?=\S)', info)  # Split by comma followed by any non-whitespace character
+    def parse_multiple_emails(self, info: str) -> List["EmailParser.EmailContact"]:
+        emails = re.split(
+            r",\s*(?=\S)", info
+        )  # Split by comma followed by any non-whitespace character
         contacts = []
         for em in emails:
-            match = re.match(r'(?P<name>.*?)\s*<(?P<email>.+)>', em)
+            match = re.match(r"(?P<name>.*?)\s*<(?P<email>.+)>", em)
             if match:
                 name, em = match.groups()
             else:
                 name, em = "", em
             contacts.append(self.EmailContact(name.strip(), em.strip()))
         return contacts
+
 
 class EmailSender(EmailParser):
     def __init__(self, sender_info: str) -> None:
@@ -72,9 +75,12 @@ class EmailSender(EmailParser):
     def __repr__(self) -> str:
         return str(self._sender)
 
+
 class EmailRecipients(EmailParser):
     def __init__(self, receiver_info: str) -> None:
-        self._recipients: List[EmailParser.EmailContact] = self.parse_multiple_emails(receiver_info)
+        self._recipients: List[EmailParser.EmailContact] = self.parse_multiple_emails(
+            receiver_info
+        )
 
     def __getitem__(self, index: int) -> EmailParser.EmailContact:
         return self._recipients[index]
@@ -86,10 +92,11 @@ class EmailRecipients(EmailParser):
         return iter(self._recipients)
 
     def __str__(self) -> str:
-        return ', '.join(str(receiver) for receiver in self._recipients)
+        return ", ".join(str(receiver) for receiver in self._recipients)
 
     def __repr__(self) -> str:
-        return ', '.join(str(receiver) for receiver in self._recipients)
+        return ", ".join(str(receiver) for receiver in self._recipients)
+
 
 class EmailFlag(Enum):
     SEEN = auto()
@@ -103,6 +110,7 @@ class EmailFlag(Enum):
 @dataclass
 class EmailAttachment:
     """Class for storing email attachaments"""
+
     filename: str
     data: str
     content_type: str
@@ -110,10 +118,18 @@ class EmailAttachment:
     def __repr__(self) -> str:
         return f"<{self.filename} ({self.content_type})>"
 
+
 class EmailMessage:
     """Class for parsing email messages"""
 
-    def __init__(self, folder: str, uid: str, flags: List[EmailFlag], email_obj: email.message.Message, imap_obj: Any):
+    def __init__(
+        self,
+        folder: str,
+        uid: str,
+        flags: List[EmailFlag],
+        email_obj: email.message.Message,
+        imap_obj: Any,
+    ):
         self._folder: str = folder
         self._uid: str = uid
         self._flags: List[EmailFlag] = flags
@@ -192,23 +208,20 @@ class EmailMessage:
 
     def clean_value(self, value: Any, encoding: Optional[str]) -> str:
         if isinstance(value, bytes):
-            if encoding not in ['utf-8', None]:
+            if encoding not in ["utf-8", None]:
                 return value.decode(encoding)
             return utils.b_to_str(value)
         return str(value)
 
     def _normalize_string(self, text: str) -> str:
-        conversion = {
-            '\r\n\t': ' ',
-            r'\s+': ' '
-        }
+        conversion = {"\r\n\t": " ", r"\s+": " "}
         for find, replace in conversion.items():
             text = re.sub(find, replace, text, flags=re.UNICODE)
         return text
 
     def _get_links(self, text: str) -> List[str]:
         links = set([])
-        matches = re.findall(r'(https?://\S+?)(?=\s|$)', text, re.I | re.M)
+        matches = re.findall(r"(https?://\S+?)(?=\s|$)", text, re.I | re.M)
         if matches:
             for m in matches:
                 links.add(m)
@@ -218,7 +231,7 @@ class EmailMessage:
         if not isinstance(flags, list):
             flags = [flags]
         for flag in flags:
-            if flag.name.startswith('UN'):
+            if flag.name.startswith("UN"):
                 if EmailFlag[flag.name[2:]] in self._flags:
                     self._flags.remove(EmailFlag[flag.name[2:]])
             else:
@@ -240,26 +253,26 @@ class EmailMessage:
             text = utils.b_to_str(self._email_obj.get_payload(decode=True)).rstrip()
             self._text.append(
                 {
-                    'text': text,
-                    'text_normalized': self._normalize_string(text),
-                    'links': self._get_links(text)
+                    "text": text,
+                    "text_normalized": self._normalize_string(text),
+                    "links": self._get_links(text),
                 }
             )
         else:
             for part in self._email_obj.walk():
-                if part.get_content_maintype() == 'multipart':
+                if part.get_content_maintype() == "multipart":
                     continue
                 content_type = part.get_content_type()
-                if content_type == 'text/plain':
+                if content_type == "text/plain":
                     text = utils.b_to_str(part.get_payload(decode=True)).rstrip()
                     self._text.append(
                         {
-                            'text': text,
-                            'text_normalized': self._normalize_string(text),
-                            'links': self._get_links(text)
+                            "text": text,
+                            "text_normalized": self._normalize_string(text),
+                            "links": self._get_links(text),
                         }
                     )
-                elif content_type == 'text/html':
+                elif content_type == "text/html":
                     html = utils.b_to_str(part.get_payload(decode=True)).rstrip()
                     self._html.append(html)
                 else:
@@ -267,47 +280,48 @@ class EmailMessage:
                         data = part.get_payload(decode=True)
                     except AssertionError:
                         data = None
-                    attachment_fname = decode_header(part.get_filename() or '')
+                    attachment_fname = decode_header(part.get_filename() or "")
                     filename = self.clean_value(
                         attachment_fname[0][0], attachment_fname[0][1]
                     )
 
                     self._attachments.append(
-                        EmailAttachment(filename=filename, data=data, content_type=content_type)
+                        EmailAttachment(
+                            filename=filename, data=data, content_type=content_type
+                        )
                     )
 
-        if 'subject' in self._email_obj:
-            msg_subject = decode_header(self._email_obj['subject'])
-            self._subject = self.clean_value(
-                msg_subject[0][0], msg_subject[0][1])
+        if "subject" in self._email_obj:
+            msg_subject = decode_header(self._email_obj["subject"])
+            self._subject = self.clean_value(msg_subject[0][0], msg_subject[0][1])
 
-        from_header_cleaned = re.sub(r'[\n\r\t]+', ' ',
-                                     self._email_obj['from'] or '')
+        from_header_cleaned = re.sub(r"[\n\r\t]+", " ", self._email_obj["from"] or "")
         msg_from = decode_header(from_header_cleaned)
-        msg_txt = ''
+        msg_txt = ""
         for part in msg_from:
             msg_txt += self.clean_value(part[0], part[1])
 
         self.sender = EmailSender(msg_txt)
 
-        if 'to' in self._email_obj:
-            self.recipients = EmailRecipients(self._email_obj['to'])
+        if "to" in self._email_obj:
+            self.recipients = EmailRecipients(self._email_obj["to"])
 
-        msg_cc = decode_header(str(self._email_obj['cc']))
+        msg_cc = decode_header(str(self._email_obj["cc"]))
         cc_clean = self.clean_value(msg_cc[0][0], msg_cc[0][1])
-        if cc_clean and cc_clean.lower() != 'none':
-            recipients = cc_clean.split(',')
+        if cc_clean and cc_clean.lower() != "none":
+            recipients = cc_clean.split(",")
             for recipient in recipients:
-                if '<' in recipient and '>' in recipient:
-                    matches = re.findall(r'((?P<to>.*)?(?P<to_email>\<.*\>))',
-                                         recipient, re.U)
+                if "<" in recipient and ">" in recipient:
+                    matches = re.findall(
+                        r"((?P<to>.*)?(?P<to_email>\<.*\>))", recipient, re.U
+                    )
                     if matches:
                         for match in matches:
                             self._cc.append(
                                 {
-                                    'cc': match[0],
-                                    'cc_to': match[1].strip(" \n\r\t"),
-                                    'cc_email': match[2].strip("<>"),
+                                    "cc": match[0],
+                                    "cc_to": match[1].strip(" \n\r\t"),
+                                    "cc_email": match[2].strip("<>"),
                                 }
                             )
                     else:
@@ -318,13 +332,13 @@ class EmailMessage:
                 else:
                     self._cc.append(
                         {
-                            'cc': recipient,
-                            'cc_to': '',
-                            'cc_email': recipient,
+                            "cc": recipient,
+                            "cc_to": "",
+                            "cc_email": recipient,
                         }
                     )
 
-        self._date = self._email_obj['Date']
+        self._date = self._email_obj["Date"]
 
         for header, val in self._email_obj.items():
             if header in self._headers:

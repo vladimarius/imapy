@@ -56,7 +56,8 @@
 
 from typing import List, Set
 
-PRINTABLE: Set[int] = set(range(0x20, 0x26)) | set(range(0x27, 0x7f))
+PRINTABLE: Set[int] = set(range(0x20, 0x26)) | set(range(0x27, 0x7F))
+
 
 def encode(s: str) -> bytes:
     """Encode a folder name using IMAP modified UTF-7 encoding.
@@ -69,22 +70,23 @@ def encode(s: str) -> bytes:
 
     def extend_result_if_chars_buffered() -> None:
         if _in:
-            r.extend([b'&', modified_utf7(''.join(_in)), b'-'])
+            r.extend([b"&", modified_utf7("".join(_in)), b"-"])
             del _in[:]
 
     for c in s:
         if ord(c) in PRINTABLE:
             extend_result_if_chars_buffered()
-            r.append(c.encode('latin-1'))
-        elif c == '&':
+            r.append(c.encode("latin-1"))
+        elif c == "&":
             extend_result_if_chars_buffered()
-            r.append(b'&-')
+            r.append(b"&-")
         else:
             _in.append(c)
 
     extend_result_if_chars_buffered()
 
-    return b''.join(r)
+    return b"".join(r)
+
 
 def decode(s: bytes) -> str:
     """Decode a folder name from IMAP modified UTF-7 encoding to unicode.
@@ -98,11 +100,11 @@ def decode(s: bytes) -> str:
     r: List[str] = []
     _in: bytearray = bytearray()
     for c in s:
-        if c == ord(b'&') and not _in:
+        if c == ord(b"&") and not _in:
             _in.append(c)
-        elif c == ord(b'-') and _in:
+        elif c == ord(b"-") and _in:
             if len(_in) == 1:
-                r.append('&')
+                r.append("&")
             else:
                 r.append(modified_deutf7(_in[1:]))
             _in = bytearray()
@@ -112,12 +114,14 @@ def decode(s: bytes) -> str:
             r.append(chr(c))
     if _in:
         r.append(modified_deutf7(_in[1:]))
-    return ''.join(r)
+    return "".join(r)
+
 
 def modified_utf7(s: str) -> bytes:
-    s_utf7: bytes = s.encode('utf-7')
-    return s_utf7[1:-1].replace(b'/', b',')
+    s_utf7: bytes = s.encode("utf-7")
+    return s_utf7[1:-1].replace(b"/", b",")
+
 
 def modified_deutf7(s: bytes) -> str:
-    s_utf7: bytes = b'+' + s.replace(b',', b'/') + b'-'
-    return s_utf7.decode('utf-7')
+    s_utf7: bytes = b"+" + s.replace(b",", b"/") + b"-"
+    return s_utf7.decode("utf-7")

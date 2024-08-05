@@ -83,8 +83,8 @@ Third-party Exceptions
 
 
 class ConnectionRefused(ImapyException):
-    """ Connection refused """
+    """Connection refused"""
 
 
 class InvalidHost(ImapyException):
-    """ Invalid host """
+    """Invalid host"""

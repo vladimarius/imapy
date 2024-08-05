@@ -7,9 +7,9 @@ import imapy
 from imapy.query_builder import Q
 
 em = imapy.connect(
-    host='host',
-    username='username',
-    password='password',
+    host="host",
+    username="username",
+    password="password",
     ssl=True,
 )
 
@@ -19,9 +19,7 @@ em = imapy.connect(
 """
 # select the required email
 q = Q()
-emails = em.folder('Inbox').emails(
-    q.subject("PDF test")
-)
+emails = em.folder("Inbox").emails(q.subject("PDF test"))
 
 # get attachment info
 if len(emails):
@@ -32,7 +30,7 @@ if len(emails):
         content_type = attachment.content_type
         data = attachment.data
 
-        with open(file_name, 'w') as f:
+        with open(file_name, "w") as f:
             f.write(data)
 
 # logout
