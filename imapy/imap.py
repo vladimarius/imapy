@@ -306,10 +306,10 @@ class IMAP():
                     old_literal = self.imap.literal
                     self.imap.literal = utils.str_to_b(
                         query.non_ascii_params[0])
-                    result, data = self.imap.uid('SEARCH', *use_query)
+                    _, data = self.imap.uid('SEARCH', *use_query)
                     self.imap.literal = old_literal
                 else:
-                    result, data = self.imap.uid('SEARCH', *use_query)
+                    _, data = self.imap.uid('SEARCH', *use_query)
 
                 if data and data[0]:
                     uids = utils.b_to_str(data[0]).split()
@@ -345,7 +345,7 @@ class IMAP():
         if not to_id:
             to_seq = status['total']
 
-        result, data = self.imap.fetch(
+        _, data = self.imap.fetch(
             f'{max(from_seq, 1)}:{max(to_seq, 1)}', '(UID)')
 
         if isinstance(data, list) and data[0]:
