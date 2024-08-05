@@ -6,7 +6,7 @@ authors = ["Vladimir Goncharov <vladimarius@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=2.7"
+python = ">=3.7"
 
 [tool.poetry.dev-dependencies]
 

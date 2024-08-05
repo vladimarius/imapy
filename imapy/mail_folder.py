@@ -12,22 +12,25 @@
 """
 
 import re
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
 from . import utils
-from .exceptions import (EmailFolderParsingError)
+from .exceptions import EmailFolderParsingError
 
 
+@dataclass
 class MailFolder():
     """Class for email folder operations"""
 
-    def __init__(self):
-        """Initialize vars"""
-        # list holding folder names
-        self.folders = []
-        self.folders_tree = {}
-        self.children = {}
-        # prepare regexp
-        # (\\HasNoChildren) "/" "Bulk Mail"
-        # (\HasNoChildren \Drafts) "." Drafts
+    folders: List[str] = field(default_factory=list)
+    folders_tree: Dict[str, Any] = field(default_factory=dict)
+    children: Dict[str, List[str]] = field(default_factory=dict)
+    separator: str = field(init=False)
+    raw_folders: List[Any] = field(init=False)
+    folder_parts: re.Pattern = field(init=False)
+
+    def __post_init__(self):
         self.folder_parts = re.compile(
             r'''
             # name attributes
@@ -38,7 +41,7 @@ class MailFolder():
             \"?(?P<name>.*?)\"?$
             ''', re.VERBOSE)
 
-    def get_folders(self, *args):
+    def get_folders(self, *args: Tuple[Any, List[Any]]) -> List[str]:
         """Return list of found folders"""
         self.raw_folders = args[0][1]
         # get dictionary holding folders info
@@ -46,26 +49,21 @@ class MailFolder():
             self.raw_folders)
         return self.folders
 
-    def get_children(self, folder_name):
+    def get_children(self, folder_name: str) -> List[str]:
         """Returns list of subfolders for current folder"""
-        if folder_name in self.children:
-            return self.children[folder_name]
-        return []
+        return self.children.get(folder_name, [])
 
-    def get_separator(self):
+    def get_separator(self) -> str:
         """Return hierarchy separator """
         return self.separator
 
-    def _get_folders_tree_and_children(self, raw_folders):
+    def _get_folders_tree_and_children(self, raw_folders: List[Any]) -> Tuple[Dict[str, Any], Dict[str, List[str]]]:
         """Construct Folders tree and dictionary holding folder children"""
-        obj_list = {}
+        obj_list: Dict[str, Any] = {}
         self.folders = []
-        """setup maximum depth for a folder
-           (used later while merging objects into one)
-        """
         max_depth = 0
+
         for raw_folder in raw_folders:
-            # get name attributes, hierarchy delimiter, name
             if not raw_folder:
                 continue
 
@@ -73,133 +71,71 @@ class MailFolder():
                 len_suffix = '{%d}' % len(raw_folder[1])
                 raw_folder = raw_folder[0][:-len(len_suffix)] + raw_folder[1]
 
-            # decode folder name
             raw_folder = utils.utf7_to_unicode(raw_folder)
             match = self.folder_parts.match(raw_folder)
             if not match:
                 raise EmailFolderParsingError("Couldn't parse folder info.")
 
-            # create objects
-            """
-            Example of format we use:
-            "[Gmail]":
-                # name without path
-                'name':'[Gmail]',
-                # name with path
-                'full_name':'[Gmail]',
-                # only attributes defined in RFC3501
-                # '\' is skipped from the start of attributes
-                'standard_attributes': ['HasChildren', 'Noselect'],
-                # custom attributes (all the attributes we've found)
-                'full_attributes':['HasChildren', 'Noselect']
-                'children':{}, # empty dict or dict with objects like this
-                'parent_name':False,
-                'depth':0, # how deep the folder is (zero is the root)
-            """
-            # box attributes
-            attributes = match.group('attributes').split()
-            attributes = [a.lstrip('\\') for a in attributes]
-
-            # separator
+            attributes = [a.lstrip('\\') for a in match.group('attributes').split()]
             self.separator = utils.to_unescaped_str(match.group('separator'))
-
-            # full name (unique identifier for mailbox)
             full_name = match.group('name')
+            name = full_name.split(self.separator)[-1]
 
-            # full name with no path part
-            name = full_name.split(self.separator).pop()
-
-            # parent's name
             parent_name = False
-            if full_name.count(self.separator):
+            if self.separator in full_name:
                 parent_parts = full_name.split(self.separator)
-                parent_name = self.separator.join(
-                    [i for i in parent_parts[:-1]]
-                )
+                parent_name = self.separator.join(parent_parts[:-1])
 
-            # depth
             depth = full_name.count(self.separator)
-            if depth > max_depth:
-                max_depth = depth
+            max_depth = max(max_depth, depth)
 
-            # add folder name to list of folders
             self.folders.append(utils.to_str(full_name))
 
-            # add to object dictionary
             obj_list[full_name] = {
                 'full_name': full_name,
                 'name': name,
-                # TODO -- add only standard values
-                'standard_attributes': [attr for attr in attributes],
+                'standard_attributes': attributes.copy(),
                 'full_attributes': attributes,
-                # this later is updated while merging objects later
                 'children': {},
                 'parent_name': parent_name,
                 'depth': depth
             }
 
-        # Merge objects into one and create children dict
-        tree, children = self._create_tree_and_children(
-            max_depth, obj_list)
-
+        tree, children = self._create_tree_and_children(max_depth, obj_list)
         return tree, children
 
-    def get_parent_name(self, folder_name):
-        """Returns name of a parent folder or itself if it is already topmost
-        folder.
-        """
+    def get_parent_name(self, folder_name: str) -> str:
+        """Returns name of a parent folder or itself if it is already topmost folder."""
         if self.separator not in folder_name:
             return folder_name
         parent_parts = folder_name.split(self.separator)[:-1]
-        return self.separator.join([str(i) for i in parent_parts])
+        return self.separator.join(parent_parts)
 
-    def _create_tree_and_children(self, max_depth, obj_list):
-        """Returns 2 things:
-        1) Folders merged into tree-like dictionary
-        2) Dictionary containing the children of each folder
-        """
-        current_depth = 0
-        result = {}
-        children = {}
-        while current_depth <= max_depth:
-            for folder_name in obj_list:
-                # add only folders from current depth
-                if obj_list[folder_name]['depth'] == current_depth:
-                    # does it has a parent ?
-                    parent_name = obj_list[folder_name]['parent_name']
+    def _create_tree_and_children(self, max_depth: int, obj_list: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, List[str]]]:
+        """Returns folders merged into tree-like dictionary and dictionary containing the children of each folder"""
+        result: Dict[str, Any] = {}
+        children: Dict[str, List[str]] = {}
+
+        for current_depth in range(max_depth + 1):
+            for folder_name, folder_info in obj_list.items():
+                if folder_info['depth'] == current_depth:
+                    parent_name = folder_info['parent_name']
                     if parent_name:
-                        # create subtree in result
-                        name = ''
                         path = result
-                        for i, name in enumerate(
-                                folder_name.split(self.separator)):
-                            local_name_parts = folder_name.split(
-                                self.separator)[:i + 1]
-                            local_name = self.separator.join(
-                                [s for s in local_name_parts])
-                            if name != self.separator:
-                                if name not in path:
-                                    """ Additional check for Dovecot which can have subfolder
-                                    without a parent folder
-                                    """
-                                    if local_name in obj_list:
-                                        path[name] = obj_list[local_name]
-                            # nonexistent parent check (Dovecot)
+                        for i, name in enumerate(folder_name.split(self.separator)):
+                            local_name = self.separator.join(folder_name.split(self.separator)[:i + 1])
+                            if name != self.separator and name not in path and local_name in obj_list:
+                                path[name] = obj_list[local_name]
                             if name in path:
                                 path = path[name]['children']
-                        # nonexistent parent check (Dovecot)
                         if parent_name in children:
-                            # add to children
                             children[parent_name].append(folder_name)
                             children[folder_name] = []
                     else:
-                        # just add
-                        result[folder_name] = obj_list[folder_name]
-                        # add to children
+                        result[folder_name] = folder_info
                         children[folder_name] = []
-            current_depth += 1
 
         return result, children
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.folders)

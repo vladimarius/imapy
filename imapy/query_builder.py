@@ -15,26 +15,23 @@
     :license: MIT, see LICENSE for more details.
 """
 import re
-from datetime import datetime
-from datetime import date
-from .exceptions import (
-    SearchSyntaxNotSupported, WrongDateFormat, SizeParsingError
-)
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Any, Callable, List
+
+from .exceptions import SearchSyntaxNotSupported, SizeParsingError, WrongDateFormat
 
 
-def convert_units(func):
+def convert_units(func: Callable) -> Callable:
     """Decorator used to convert units (KB, MB, B) from string representation
        to a number.
     """
-    def wrapper(*args):
+    def wrapper(*args: Any) -> Any:
         what = args[1]
         if isinstance(what, int):
             size = what
         else:
             what = what.strip('" \'').lower()
-            # Units: B, KB, MB, GB
-            # Byte, Bytes, KiloByte, KiloBytes, MegaByte, MegaBytes, GigaByte,
-            # Gigabytes
             multiplicator = 1
             if ('giga' in what or 'gb' in what):
                 multiplicator = 1000000000
@@ -43,7 +40,6 @@ def convert_units(func):
             elif ('kilo' in what or 'kb' in what):
                 multiplicator = 1000
 
-            # clean string
             what = re.sub(
                 (
                     "(((giga)|(mega)|(kilo))(bytes?))|"
@@ -54,64 +50,47 @@ def convert_units(func):
                 what = int(what.strip())
             except ValueError:
                 raise SizeParsingError(
-                    "Incorrect format used to define message size: {what}."
+                    f"Incorrect format used to define message size: {args[1]}."
                     "Please use integer number + one of the following: "
-                    "B, Byte, Bytes, Megabyte, Megabytes, Gigabyte, Gigabytes".
-                    format(what=args[1])
+                    "B, Byte, Bytes, Megabyte, Megabytes, Gigabyte, Gigabytes"
                 )
             size = multiplicator * what
-        f = func(*[args[0], size])
-        return f
+        return func(*[args[0], size])
     return wrapper
 
-
-def check_date(func):
+def check_date(func: Callable) -> Callable:
     """Decorator used to check the validity of supplied date."""
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         date_str = args[-1]
         try:
-            # 1-Feb-2027
             datetime.strptime(date_str, '%d-%b-%Y')
         except ValueError:
             raise WrongDateFormat(
                 "Wrong date format used. Please "
-                "use \"en-US\" date format. For example: \"2-Nov-{year}\"".
-                format(year=date.today().year))
-        f = func(*args, **kwargs)
-        return f
+                f"use \"en-US\" date format. For example: \"2-Nov-{date.today().year}\""
+            )
+        return func(*args, **kwargs)
     return wrapper
 
 
-def quote(func):
+def quote(func: Callable) -> Callable:
     """Decorator used to quote query parameters."""
-    '''It is here because imaplib v2.58 quotes params differently
-    under different python versions so running UID search
-    under Python 2.7 actually calls:
-        UID SEARCH FROM "Test Account"
-    under Python 3.4:
-        UID SEARCH FROM Test Account
-    (no quotes in later example)
-    '''
-    def wrapper(*args, **kwargs):
-        # quote last argument if needed
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         last_arg = str(args[-1]).strip('"')
         if " " in last_arg:
-            last_arg = '"' + last_arg + '"'
+            last_arg = f'"{last_arg}"'
         new_args = args[:-1] + (last_arg,)
-        f = func(*new_args, **kwargs)
-        return f
+        return func(*new_args, **kwargs)
     return wrapper
 
-
+@dataclass
 class Q:
     """Class for constructing queries for IMAP search function."""
+    queries: List[Any] = field(default_factory=list)
+    capabilities: Any = None
+    non_ascii_params: List[str] = field(default_factory=list)
 
-    def __init__(self, **kwargs):
-        self.queries = []
-        self.capabilities = None
-        self.non_ascii_params = []
-
-    def is_ascii(self, txt):
+    def is_ascii(self, txt: str) -> bool:
         """Returns True if string consists of ASCII characters only,
         False otherwise
         """
@@ -121,7 +100,7 @@ class Q:
             return False
         return True
 
-    def get_query(self):
+    def get_query(self) -> List[Any]:
         """Returns list containing queries"""
         non_ascii = self._get_non_ascii_params()
         if len(non_ascii) > 1:
@@ -129,82 +108,80 @@ class Q:
                 "Searching using more than 1 parameter "
                 "containing non-ascii characters is "
                 "not supported")
-        # do we have non-ascii characters in query ?
-        if len(non_ascii):
+        if non_ascii:
             for k, v in enumerate(self.queries[:]):
                 if v == non_ascii[0]:
                     del self.queries[k]
-                    # put list member to the end of list
                     self.queries.append(self.queries.pop(k - 1))
             if 'CHARSET' not in self.queries:
                 self.queries = ['CHARSET', 'UTF-8'] + self.queries
 
         return self.queries
 
-    def _get_non_ascii_params(self):
+    def _get_non_ascii_params(self) -> List[str]:
         """Checks how much query parameters have non-ascii symbols and
         returns them"""
         if not self.non_ascii_params:
             for q in self.queries:
-                if not isinstance(q, int) and not self.is_ascii(q):
-                    self.non_ascii_params.append(q)
+                if not isinstance(q, int) and not self.is_ascii(str(q)):
+                    self.non_ascii_params.append(str(q))
         return self.non_ascii_params
 
     @quote
-    def sender(self, what):
+    def sender(self, what: str) -> 'Q':
         """Messages that contain the specified string in FROM field."""
         self.queries += ['FROM', what]
         return self
 
-    def answered(self):
+    def answered(self) -> 'Q':
         r"""Messages with the \Answered flag set."""
         self.queries += ['ANSWERED']
         return self
 
     @quote
-    def bcc(self, what):
+    def bcc(self, what: str) -> 'Q':
         """Messages that contain the specified string in the envelope
          structure's BCC field."""
         self.queries += ['BCC', what]
         return self
 
     @quote
-    def before(self, what):
+    def before(self, what: str) -> 'Q':
         """Messages whose internal date (disregarding time and timezone)
          is earlier than the specified date."""
         self.queries += ['BEFORE', what]
         return self
 
     @quote
-    def body(self, what):
+    def body(self, what: str) -> 'Q':
         """Messages that contain the specified string in the body of the
          message."""
         self.queries += ['BODY', what]
         return self
 
     @quote
-    def cc(self, what):
+    def cc(self, what: str) -> 'Q':
         """Messages that contain the specified string in CC field."""
         self.queries += ['CC', what]
         return self
 
-    def deleted(self):
+    def deleted(self) -> 'Q':
         r"""Messages with the \Deleted flag set."""
         self.queries += ['DELETED']
         return self
 
-    def draft(self):
+    def draft(self) -> 'Q':
         r"""Messages with the \Draft flag set."""
         self.queries.append('DRAFT')
         return self
 
-    def flagged(self):
+    def flagged(self) -> 'Q':
         r"""Messages with the \Flagged flag set."""
         self.queries += ['FLAGGED']
         return self
 
     @quote
-    def header(self, header, what):
+    def header(self, header: str, what: str) -> 'Q':
         """Messages that have a header with the specified field-name (as
          defined in [RFC-2822]) and that contains the specified string
          in the text of the header"""
@@ -212,26 +189,26 @@ class Q:
         return self
 
     @quote
-    def keyword(self, what):
+    def keyword(self, what: str) -> 'Q':
         """Messages with the specified keyword flag set."""
         self.queries += ['KEYWORD', what]
         return self
 
     @convert_units
     @quote
-    def larger(self, what):
+    def larger(self, what: Any) -> 'Q':
         """Messages with an [RFC-2822] size larger than the specified
          number of octets (1 Octet = 1 Byte)"""
         self.queries += ['LARGER', what]
         return self
 
-    def new(self):
+    def new(self) -> 'Q':
         r"""Messages that have the \Recent flag set but not the \Seen flag.
          This is functionally equivalent to "(RECENT UNSEEN)"."""
         self.queries += ['NEW']
         return self
 
-    def old(self):
+    def old(self) -> 'Q':
         r"""Messages that do not have the \Recent flag set.  This is
          functionally equivalent to "NOT RECENT" (as opposed to "NOT
          NEW")."""
@@ -240,25 +217,25 @@ class Q:
 
     @quote
     @check_date
-    def on(self, what):
+    def on(self, what: str) -> 'Q':
         """Messages whose internal date (disregarding time and timezone)
          is within the specified date."""
         self.queries += ['ON', what]
         return self
 
-    def recent(self):
+    def recent(self) -> 'Q':
         r"""Messages that have the \Recent flag set."""
         self.queries += ['RECENT']
         return self
 
-    def seen(self):
+    def seen(self) -> 'Q':
         r"""Messages that have the \Seen flag set."""
         self.queries += ['SEEN']
         return self
 
     @quote
     @check_date
-    def sent_before(self, what):
+    def sent_before(self, what: str) -> 'Q':
         """Messages whose [RFC-2822] Date: header (disregarding time and
          timezone) is earlier than the specified date"""
         self.queries += ['SENTBEFORE', what]
@@ -266,7 +243,7 @@ class Q:
 
     @quote
     @check_date
-    def sent_on(self, what):
+    def sent_on(self, what: str) -> 'Q':
         """Messages whose [RFC-2822] Date: header (disregarding time and
          timezone) is within the specified date."""
         self.queries += ['SENTON', what]
@@ -274,7 +251,7 @@ class Q:
 
     @quote
     @check_date
-    def sent_since(self, what):
+    def sent_since(self, what: str) -> 'Q':
         """Messages whose [RFC-2822] Date: header (disregarding time and
          timezone) is within or later than the specified date."""
         self.queries += ['SENTSINCE', what]
@@ -282,7 +259,7 @@ class Q:
 
     @quote
     @check_date
-    def since(self, what):
+    def since(self, what: str) -> 'Q':
         """Messages whose internal date (disregarding time and timezone)
          is within or later than the specified date."""
         self.queries += ['SINCE', what]
@@ -290,67 +267,67 @@ class Q:
 
     @convert_units
     @quote
-    def smaller(self, what):
+    def smaller(self, what: Any) -> 'Q':
         """Messages with an [RFC-2822] size smaller than the specified
          number of octets (1 Octet = 1 Byte)"""
         self.queries += ['SMALLER', what]
         return self
 
     @quote
-    def subject(self, what):
+    def subject(self, what: str) -> 'Q':
         """Messages that contain the specified string in the envelope
          structure's SUBJECT field."""
         self.queries += ['SUBJECT', what]
         return self
 
     @quote
-    def text(self, what):
+    def text(self, what: str) -> 'Q':
         """Messages that contain the specified string in the header or
          body of the message."""
         self.queries += ['TEXT', what]
         return self
 
     @quote
-    def recipient(self, what):
+    def recipient(self, what: str) -> 'Q':
         """Messages that contain the specified string in the envelope
          structure's TO field."""
         self.queries += ['TO', what]
         return self
 
     @quote
-    def uid(self, what):
+    def uid(self, what: str) -> 'Q':
         """Messages with unique identifiers corresponding to the specified
          unique identifier set.  Sequence set ranges are permitted."""
         self.queries += ['UID', what]
         return self
 
-    def unanswered(self):
+    def unanswered(self) -> 'Q':
         r"""Messages that do not have the \Answered flag set."""
         self.queries += ['UNANSWERED']
         return self
 
-    def undeleted(self):
+    def undeleted(self) -> 'Q':
         r"""Messages that do not have the \Deleted flag set."""
         self.queries += ['UNDELETED']
         return self
 
-    def undraft(self):
+    def undraft(self) -> 'Q':
         r"""Messages that do not have the \Draft flag set."""
         self.queries += ['UNDRAFT']
         return self
 
-    def unflagged(self):
+    def unflagged(self) -> 'Q':
         r"""Messages that do not have the \Flagged flag set."""
         self.queries += ['UNFLAGGED']
         return self
 
     @quote
-    def unkeyword(self, what):
+    def unkeyword(self, what: str) -> 'Q':
         """Messages that do not have the specified keyword flag set."""
         self.queries += ['UNKEYWORD', what]
         return self
 
-    def unseen(self):
+    def unseen(self) -> 'Q':
         r"""Messages that do not have the \Seen flag set."""
         self.queries += ['UNSEEN']
         return self
