@@ -1,5 +1,9 @@
 # Imapy: IMAP for Humans
 
+[![codecov](https://codecov.io/github/vladimarius/imapy/branch/master/graph/badge.svg?token=cumYUAsSjO)](https://codecov.io/github/vladimarius/imapy)
+![GitHub Actions](https://github.com/vladimarius/imapy/actions/workflows/python-package.yml/badge.svg)
+
+
 Imapy is a Python library that simplifies working with the IMAP protocol, making it more accessible and user-friendly.
 
 ## Features
@@ -78,7 +82,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License.
-
-
-[![codecov](https://codecov.io/github/vladimarius/imapy/branch/master/graph/badge.svg?token=cumYUAsSjO)](https://codecov.io/github/vladimarius/imapy)
-![GitHub Actions](https://github.com/vladimarius/imapy/actions/workflows/python-package.yml/badge.svg)
