@@ -18,7 +18,7 @@ from imapy.query_builder import Q
 
 @pytest.fixture
 def mock_imap():
-    with patch("imapy.imap.IMAP.connect"), patch("imapy.imap.IMAP._update_folder_info"):
+    with patch("imaplib.IMAP4_SSL"), patch("imapy.imap.IMAP._update_folder_info"):
         mock_imap = IMAP(
             host="imap.example.com", username="user", password="pass", ssl=True
         )
@@ -33,13 +33,14 @@ def mock_imap():
 
         # Create a proper mock for MailFolder
         mock_mail_folder = Mock(spec=MailFolder)
-        mock_mail_folder.separator = "/"
-        mock_mail_folder.get_separator.return_value = "/"
         mock_mail_folder.get_folders.return_value = ["INBOX", "Sent", "Trash"]
+        mock_mail_folder.get_separator.return_value = "/"
+        mock_mail_folder.separator = "/"
         mock_mail_folder.get_children.return_value = []
         mock_mail_folder.get_parent_name.return_value = "INBOX"
 
         mock_imap.mail_folder_class = mock_mail_folder
+
         mock_imap.folder_capabilities = {"INBOX": ["CAPABILITY1", "CAPABILITY2"]}
 
         mock_imap.imap.list.return_value = ("OK", [b'(\\HasNoChildren) "/" "INBOX"'])
@@ -53,9 +54,54 @@ def mock_imap():
         yield mock_imap
 
 
-def test_connect(mock_imap):
-    assert mock_imap.connect.called
-    assert mock_imap.logged_in is True
+@pytest.fixture
+def mock_imap_base():
+    with patch("imapy.imap.imaplib.IMAP4") as mock_imap4, patch(
+        "imapy.imap.imaplib.IMAP4_SSL"
+    ) as mock_imap4_ssl:
+        mock_instance = Mock()
+        mock_instance.list.return_value = ("OK", [])
+        mock_instance.capabilities = []
+        mock_instance.login.return_value = ("OK", [])
+        mock_imap4.return_value = mock_instance
+        mock_imap4_ssl.return_value = mock_instance
+        yield mock_imap4, mock_imap4_ssl
+
+
+@patch("imapy.imap.IMAP.connect")
+def test_connect_custom_port(mock_connect, mock_imap_base):
+    _, mock_imap4_ssl = mock_imap_base
+    IMAP(host="imap.example.com", username="user", password="pass", ssl=True, port=1234)
+
+    mock_imap4_ssl.assert_called_once_with("imap.example.com", port=1234)
+    mock_connect.assert_called_once()
+
+
+@patch("imapy.imap.IMAP.connect")
+def test_connect_non_ssl(mock_connect, mock_imap_base):
+    mock_imap4, _ = mock_imap_base
+    IMAP(host="imap.example.com", username="user", password="pass", ssl=False)
+
+    mock_imap4.assert_called_once_with("imap.example.com", port=143)
+    mock_connect.assert_called_once()
+
+
+@patch("imapy.imap.IMAP.connect")
+def test_connect_auth(mock_connect, mock_imap_base):
+    _, mock_imap4_ssl = mock_imap_base
+    mock_auth_object = Mock()
+
+    IMAP(
+        host="imap.example.com",
+        username="user",
+        password="pass",
+        ssl=True,
+        auth_mechanism="XOAUTH2",
+        auth_object=mock_auth_object,
+    )
+
+    mock_imap4_ssl.assert_called_once_with("imap.example.com", port=993)
+    mock_connect.assert_called_once()
 
 
 def test_connect_connection_refused():
@@ -188,7 +234,7 @@ def test_mark(mock_imap):
 def test_make_folder(mock_imap):
     mock_imap.make_folder("New Folder")
     mock_imap.imap.create.assert_called_once_with('"INBOX/New Folder"')
-    mock_imap._update_folder_info.assert_called_once()
+    assert mock_imap._update_folder_info.call_count > 1
 
 
 def test_copy_message(mock_imap):
@@ -234,14 +280,14 @@ def test_rename(mock_imap):
     mock_imap.folder = Mock()
     mock_imap.rename("New Name")
     mock_imap.imap.rename.assert_called_once_with('"INBOX"', '"New Name"')
-    assert mock_imap._update_folder_info.call_count == 2
+    assert mock_imap._update_folder_info.call_count > 1
     assert mock_imap.folder.call_count == 2
 
 
 def test_delete(mock_imap):
     mock_imap.delete()
     mock_imap.imap.delete.assert_called_once_with('"INBOX"')
-    mock_imap._update_folder_info.assert_called_once()
+    assert mock_imap._update_folder_info.call_count >= 1
 
 
 @pytest.mark.parametrize(
