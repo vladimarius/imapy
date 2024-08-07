@@ -72,7 +72,7 @@ class IMAP:
     auth_mechanism: Optional[str] = None
     auth_object: Any = None
     debug_level: int = 0
-    port: Optional[int] = None
+    port: int = field(init=False)
 
     capabilities: List[str] = field(default_factory=list)
     separator: Optional[str] = None
@@ -103,9 +103,19 @@ class IMAP:
 
     operating_folder: Optional[str] = None
     logged_in: bool = False
-    imap: Union[imaplib.IMAP4, imaplib.IMAP4_SSL] = None
+    imap: Union[imaplib.IMAP4, imaplib.IMAP4_SSL] = field(init=False)
+
+    # default ports
+    IMAP4_SSL_PORT: int = 993
+    IMAP4_PORT: int = 143
 
     def __post_init__(self):
+        if self.ssl:
+            self.imap = imaplib.IMAP4_SSL(self.host, port=self.port)
+        else:
+            self.imap = imaplib.IMAP4(self.host, port=self.port)
+        if not self.port:
+            self.port = self.IMAP4_SSL_PORT if self.ssl else self.IMAP4_PORT
         self.standard_flags = self.standard_rw_flags + self.standard_r_flags
         self.connect()
 
@@ -222,17 +232,10 @@ class IMAP:
         return self
 
     def connect(self) -> "IMAP":
-        if not self.port:
-            self.port = imaplib.IMAP4_SSL_PORT if self.ssl else imaplib.IMAP4_PORT
-
         if not self.host:
             raise InvalidHost("Host is required for connection")
 
         try:
-            if self.ssl:
-                self.imap = imaplib.IMAP4_SSL(self.host, port=self.port)
-            else:
-                self.imap = imaplib.IMAP4(self.host, port=self.port)
             self.imap.debug = self.debug_level
 
             if self.auth_mechanism:
