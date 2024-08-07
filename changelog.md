@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - 2024-08-05
+## [2.0.0a1] - 2024-08-05
 - Dropped support for Python2
 - Updated email information retrieval syntax
 - Added type hints
