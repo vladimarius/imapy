@@ -6,6 +6,7 @@ Shows how to deal with email messages in Imapy
 import re
 
 import imapy
+from imapy.email_message import EmailFlag
 
 
 def get_ipv4(headers):
@@ -19,6 +20,8 @@ def get_ipv4(headers):
     return "ip not found"
 
 
+WORKING_FOLDER = "INBOX"
+
 em = imapy.connect(
     host="host",
     username="username",
@@ -29,15 +32,15 @@ em = imapy.connect(
 # first create some folders in the root email directory
 em.folder().make_folder(["Imapy1", "Imapy2"])
 
-if "Inbox" in em.folders():
+if WORKING_FOLDER in em.folders():
     """
     Copying emails
     """
     # select first 3 emails in 'Inbox' (the oldest ones)
-    emails = em.folder("Inbox").emails(1, 3)
+    emails = em.folder(WORKING_FOLDER).emails(1, 3)
     for em in emails:
         # copy each email to 'Imapy1', flagging it and making unseen
-        em.copy("Imapy1").mark(["flagged", "unseen"])
+        em.copy("Imapy1").mark([EmailFlag.FLAGGED, EmailFlag.UNSEEN])
 
     """
         Moving emails
