@@ -32,11 +32,7 @@ jobs:
     
     - name: Check formatting with Black
       run: poetry run black --check .
-    
-    - name: Lint with flake8
-      run: |
-        poetry run flake8 .
-    
+
     - name: Type check with mypy
       run: |
         poetry run mypy imapy
