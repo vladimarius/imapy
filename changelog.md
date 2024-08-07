@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.1a1] - 2024-08-07
+- Minor syntax changes (ability to fetch email UIDs)
+
 ## [2.0.0a1] - 2024-08-05
 - Dropped support for Python2
 - Updated email information retrieval syntax
