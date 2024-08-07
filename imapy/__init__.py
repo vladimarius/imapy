@@ -3,4 +3,4 @@
 """
 API hook
 """
-from .connector import (connect)
+from .connector import connect

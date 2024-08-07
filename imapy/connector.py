@@ -16,5 +16,4 @@ def connect(**kwargs):
     """Alias function which passes connection variables
     to imapy.connect() method.
     """
-    imapy = imap.IMAP()
-    return imapy.connect(**kwargs)
+    return imap.IMAP(**kwargs)
