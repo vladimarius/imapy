@@ -78,3 +78,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License.
+
+
+[![codecov](https://codecov.io/github/vladimarius/imapy/branch/master/graph/badge.svg?token=cumYUAsSjO)](https://codecov.io/github/vladimarius/imapy)
