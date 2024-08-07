@@ -130,17 +130,13 @@ class EmailMessage:
         folder: str,
         uid: str,
         flags: List[EmailFlag],
-        email_obj: Union[email.message.Message, bytes],
+        email_obj: email.message.Message,
         imap_obj: Any,
     ):
         self._folder: str = folder
         self._uid: str = uid
         self._flags: List[EmailFlag] = flags
-        self._email_obj: email.message.Message = (
-            email.message_from_bytes(email_obj)
-            if isinstance(email_obj, bytes)
-            else email_obj
-        )
+        self._email_obj: email.message.Message = email_obj
         self._imap_obj: Any = imap_obj
         self.sender: EmailSender
         self.recipients: EmailRecipients
@@ -302,7 +298,7 @@ class EmailMessage:
         from_header_cleaned = re.sub(r"[\n\r\t]+", " ", self._email_obj["from"] or "")
         msg_from = decode_header(from_header_cleaned)
         msg_txt = ""
-        for part, encoding in msg_from:
+        for part, encoding in msg_from:  # type: ignore
             msg_txt += self.clean_value(part, encoding)
 
         self.sender = EmailSender(msg_txt)

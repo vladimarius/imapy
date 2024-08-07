@@ -72,7 +72,7 @@ class IMAP:
     auth_mechanism: Optional[str] = None
     auth_object: Any = None
     debug_level: int = 0
-    port: int = field(init=False)
+    port: int = 0
 
     capabilities: List[str] = field(default_factory=list)
     separator: Optional[str] = None
@@ -110,12 +110,13 @@ class IMAP:
     IMAP4_PORT: int = 143
 
     def __post_init__(self):
+        if not self.port:
+            self.port = self.IMAP4_SSL_PORT if self.ssl else self.IMAP4_PORT
+
         if self.ssl:
             self.imap = imaplib.IMAP4_SSL(self.host, port=self.port)
         else:
             self.imap = imaplib.IMAP4(self.host, port=self.port)
-        if not self.port:
-            self.port = self.IMAP4_SSL_PORT if self.ssl else self.IMAP4_PORT
         self.standard_flags = self.standard_rw_flags + self.standard_r_flags
         self.connect()
 
