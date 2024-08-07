@@ -303,7 +303,7 @@ class IMAP:
         return None
 
     @is_logged
-    def emails(self, *args, **kwargs) -> Union[List[EmailMessage], List[str]]:
+    def emails(self, *args, **kwargs) -> List[Union[EmailMessage, str]]:
         """Returns emails based on search criteria or sequence set"""
         ids_only: bool = kwargs.get("ids_only", False)
         if len(args) > 2:
@@ -359,7 +359,7 @@ class IMAP:
         from_id: Optional[int] = None,
         to_id: Optional[int] = None,
         ids_only: bool = False,
-    ) -> Union[List[EmailMessage], List[str]]:
+    ) -> List[Union[EmailMessage, str]]:
         """Returns emails fetched by their sequence numbers."""
         from_seq = from_id
         to_seq = to_id
