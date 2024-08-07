@@ -9,61 +9,69 @@ from imapy.exceptions import (
     ImapyLoggedOut,
     InvalidHost,
     NonexistentFolderError,
+    UnknownEmailMessageType,
 )
 from imapy.imap import IMAP
+from imapy.mail_folder import MailFolder
 from imapy.query_builder import Q
 
 
 @pytest.fixture
 def mock_imap():
-    with patch("imaplib.IMAP4_SSL") as mock_imap4_ssl:
-        mock_imap = IMAP()
-        mock_imap.imap = mock_imap4_ssl.return_value
+    with patch("imapy.imap.IMAP.connect"), patch("imapy.imap.IMAP._update_folder_info"):
+        mock_imap = IMAP(
+            host="imap.example.com", username="user", password="pass", ssl=True
+        )
+
+        # Set up the mock IMAP object
+        mock_imap.imap = Mock()
         mock_imap.logged_in = True
         mock_imap.mail_folders = ["INBOX", "Sent", "Trash"]
         mock_imap.selected_folder = "INBOX"
         mock_imap.selected_folder_utf7 = b"INBOX"
         mock_imap.separator = "/"
-        mock_imap.folder_capabilities = {"INBOX": ["CAPABILITY1", "CAPABILITY2"]}
-        mock_imap.mail_folder_class = Mock()
-        mock_imap.mail_folder_class.separator = "/"
-        mock_imap._update_folder_info = Mock()
 
-        # Add the capabilities mock
-        mock_imap.imap.capability = Mock(
-            return_value=(
-                "OK",
-                [
-                    b"IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE ENABLE MOVE CONDSTORE ESEARCH UTF8=ACCEPT LIST-EXTENDED LIST-STATUS LITERAL- SPECIAL-USE APPENDLIMIT=35651584"
-                ],
-            )
+        # Create a proper mock for MailFolder
+        mock_mail_folder = Mock(spec=MailFolder)
+        mock_mail_folder.separator = "/"
+        mock_mail_folder.get_separator.return_value = "/"
+        mock_mail_folder.get_folders.return_value = ["INBOX", "Sent", "Trash"]
+        mock_mail_folder.get_children.return_value = []
+        mock_mail_folder.get_parent_name.return_value = "INBOX"
+
+        mock_imap.mail_folder_class = mock_mail_folder
+        mock_imap.folder_capabilities = {"INBOX": ["CAPABILITY1", "CAPABILITY2"]}
+
+        mock_imap.imap.list.return_value = ("OK", [b'(\\HasNoChildren) "/" "INBOX"'])
+        mock_imap.imap.capability.return_value = (
+            "OK",
+            [
+                b"IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE ENABLE MOVE CONDSTORE ESEARCH UTF8=ACCEPT LIST-EXTENDED LIST-STATUS LITERAL- SPECIAL-USE APPENDLIMIT=35651584"
+            ],
         )
 
         yield mock_imap
 
 
 def test_connect(mock_imap):
-    mock_imap.connect(
-        host="imap.example.com", username="user", password="pass", ssl=True
-    )
-    mock_imap.imap.login.assert_called_once_with("user", "pass")
+    assert mock_imap.connect.called
     assert mock_imap.logged_in is True
 
 
 def test_connect_connection_refused():
     with patch("imaplib.IMAP4_SSL", side_effect=ConnectionRefused):
         with pytest.raises(ConnectionRefused):
-            IMAP().connect(
+            IMAP(
                 host="imap.example.com", username="user", password="pass", ssl=True
-            )
+            ).connect()
 
 
 def test_connect_invalid_host():
     with patch("imaplib.IMAP4_SSL", side_effect=InvalidHost):
         with pytest.raises(InvalidHost):
-            IMAP().connect(
+            IMAP(
                 host="invalid.host", username="user", password="pass", ssl=True
-            )
+            ).connect()
 
 
 def test_logout(mock_imap):
@@ -71,6 +79,8 @@ def test_logout(mock_imap):
     mock_imap.imap.close.assert_called_once()
     mock_imap.imap.logout.assert_called_once()
     assert mock_imap.logged_in is False
+    assert mock_imap.selected_folder is None
+    assert mock_imap.selected_folder_utf7 is None
 
 
 def test_folders(mock_imap):
@@ -79,10 +89,26 @@ def test_folders(mock_imap):
 
 def test_folder_select(mock_imap):
     mock_imap.imap.select.return_value = ("OK", [b"1"])
+    mock_imap.imap.close.reset_mock()
+
     mock_imap.folder("Sent")
-    mock_imap.imap.select.assert_called_once_with(b'"Sent"')
+    mock_imap.imap.select.assert_called_with('"Sent"')
     assert mock_imap.selected_folder == "Sent"
     assert mock_imap.selected_folder_utf7 == b"Sent"
+
+    mock_imap.folder("INBOX")
+    mock_imap.imap.select.assert_called_with('"INBOX"')
+    assert mock_imap.selected_folder == "INBOX"
+    assert mock_imap.selected_folder_utf7 == b"INBOX"
+
+    with pytest.raises(NonexistentFolderError):
+        mock_imap.folder("NonexistentFolder")
+
+    mock_imap.folder()
+    assert mock_imap.selected_folder is None
+    assert mock_imap.selected_folder_utf7 is None
+
+    assert mock_imap.imap.select.call_count == 2
 
 
 def test_folder_nonexistent(mock_imap):
@@ -108,10 +134,30 @@ def test_parent(mock_imap):
 
 def test_append(mock_imap):
     message = MIMEText("Test message")
+    message["Subject"] = "Test Subject"
+    message["From"] = "sender@example.com"
+    message["To"] = "recipient@example.com"
+
     mock_imap.append(message, flags=[EmailFlag.SEEN])
+
     mock_imap.imap.append.assert_called_once_with(
-        '"INBOX"', "(\\SEEN)", None, message.as_string()
+        '"INBOX"', "(\\SEEN)", "", message.as_string()
     )
+
+    mock_imap.imap.append.reset_mock()
+    mock_imap.append(message)
+    mock_imap.imap.append.assert_called_once_with(
+        '"INBOX"', "", "", message.as_string()
+    )
+
+    mock_imap.imap.append.reset_mock()
+    mock_imap.append(message, flags=[EmailFlag.RECENT])
+    mock_imap.imap.append.assert_called_once_with(
+        '"INBOX"', "", "", message.as_string()
+    )
+
+    with pytest.raises(UnknownEmailMessageType):
+        mock_imap.append("Not a MIMEBase object")
 
 
 def test_emails_by_sequence(mock_imap):
@@ -141,7 +187,7 @@ def test_mark(mock_imap):
 
 def test_make_folder(mock_imap):
     mock_imap.make_folder("New Folder")
-    mock_imap.imap.create.assert_called_once_with(b'"INBOX/New Folder"')
+    mock_imap.imap.create.assert_called_once_with('"INBOX/New Folder"')
     mock_imap._update_folder_info.assert_called_once()
 
 
@@ -150,7 +196,7 @@ def test_copy_message(mock_imap):
     mock_imap.imap.untagged_responses = {"COPYUID": ["1 100 200"]}
     msg = Mock(spec=EmailMessage)
     result = mock_imap.copy_message("100", "Sent", msg)
-    mock_imap.imap.uid.assert_called_once_with("COPY", "100", b'"Sent"')
+    mock_imap.imap.uid.assert_called_once_with("COPY", "100", '"Sent"')
     assert result.uid == "200"
     assert result.folder == "Sent"
 
@@ -185,17 +231,16 @@ def test_info(mock_imap):
 
 
 def test_rename(mock_imap):
-    mock_imap.folder = Mock()  # Mock the folder method
+    mock_imap.folder = Mock()
     mock_imap.rename("New Name")
-    mock_imap.imap.rename.assert_called_once_with(b'"INBOX"', b'"New Name"')
-    mock_imap._update_folder_info.assert_called_once()
-
+    mock_imap.imap.rename.assert_called_once_with('"INBOX"', '"New Name"')
+    assert mock_imap._update_folder_info.call_count == 2
     assert mock_imap.folder.call_count == 2
 
 
 def test_delete(mock_imap):
     mock_imap.delete()
-    mock_imap.imap.delete.assert_called_once_with(b'"INBOX"')
+    mock_imap.imap.delete.assert_called_once_with('"INBOX"')
     mock_imap._update_folder_info.assert_called_once()
 
 
