@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from . import utils
 from .exceptions import EmailParsingError
+from .structures import CaseInsensitiveDict
 
 
 class EmailParser:
@@ -105,6 +106,8 @@ class EmailFlag(Enum):
     DELETED = auto()
     DRAFT = auto()
     RECENT = auto()
+    UNSEEN = auto()
+    UNFLAGGED = auto()
 
 
 @dataclass
@@ -127,21 +130,25 @@ class EmailMessage:
         folder: str,
         uid: str,
         flags: List[EmailFlag],
-        email_obj: email.message.Message,
+        email_obj: Union[email.message.Message, bytes],
         imap_obj: Any,
     ):
         self._folder: str = folder
         self._uid: str = uid
         self._flags: List[EmailFlag] = flags
-        self._email_obj: email.message.Message = email_obj
+        self._email_obj: email.message.Message = (
+            email.message_from_bytes(email_obj)
+            if isinstance(email_obj, bytes)
+            else email_obj
+        )
         self._imap_obj: Any = imap_obj
         self.sender: EmailSender
         self.recipients: EmailRecipients
         self._subject: str = ""
         self._cc: List[Dict[str, str]] = []
-        self._text: List[Dict[str, str]] = []
+        self._text: List[Dict[str, Union[str, List[str]]]] = []
         self._html: List[str] = []
-        self._headers: Dict[str, List[str]] = {}
+        self._headers: CaseInsensitiveDict = CaseInsensitiveDict()
         self._attachments: List[EmailAttachment] = []
         self._date: Optional[str] = None
 
@@ -179,7 +186,7 @@ class EmailMessage:
         return self._cc
 
     @property
-    def text(self) -> List[Dict[str, str]]:
+    def text(self) -> List[Dict[str, Union[str, List[str]]]]:
         return self._text
 
     @property
@@ -187,11 +194,11 @@ class EmailMessage:
         return self._html
 
     @property
-    def headers(self) -> Dict[str, List[str]]:
+    def headers(self) -> CaseInsensitiveDict:
         return self._headers
 
     @property
-    def attachments(self) -> List[Dict[str, Any]]:
+    def attachments(self) -> List[EmailAttachment]:
         return self._attachments
 
     @property
@@ -200,7 +207,7 @@ class EmailMessage:
 
     def clean_value(self, value: Any, encoding: Optional[str]) -> str:
         if isinstance(value, bytes):
-            if encoding not in ["utf-8", None]:
+            if encoding and encoding != "utf-8":
                 return value.decode(encoding)
             return utils.b_to_str(value)
         return str(value)
@@ -272,6 +279,7 @@ class EmailMessage:
                         data = part.get_payload(decode=True)
                     except AssertionError:
                         data = None
+
                     attachment_fname = decode_header(part.get_filename() or "")
                     filename = self.clean_value(
                         attachment_fname[0][0], attachment_fname[0][1]
@@ -285,13 +293,17 @@ class EmailMessage:
 
         if "subject" in self._email_obj:
             msg_subject = decode_header(self._email_obj["subject"])
-            self._subject = self.clean_value(msg_subject[0][0], msg_subject[0][1])
+            if msg_subject:
+                subject_part, encoding = msg_subject[0]
+                self._subject = self.clean_value(subject_part, encoding)
+            else:
+                self._subject = ""
 
         from_header_cleaned = re.sub(r"[\n\r\t]+", " ", self._email_obj["from"] or "")
         msg_from = decode_header(from_header_cleaned)
         msg_txt = ""
-        for part in msg_from:
-            msg_txt += self.clean_value(part[0], part[1])
+        for part, encoding in msg_from:
+            msg_txt += self.clean_value(part, encoding)
 
         self.sender = EmailSender(msg_txt)
 
@@ -325,7 +337,7 @@ class EmailMessage:
                     self._cc.append(
                         {
                             "cc": recipient,
-                            "cc_to": "",
+                            "cc_to": recipient,
                             "cc_email": recipient,
                         }
                     )

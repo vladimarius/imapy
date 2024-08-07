@@ -64,7 +64,17 @@ def refresh_folders(func):
 class IMAP:
     """Class used for interfacing between"""
 
-    capabilities: Optional[List[str]] = field(default_factory=list)
+    # Connection settings
+    host: str
+    username: str
+    password: str
+    ssl: bool = True
+    auth_mechanism: Optional[str] = None
+    auth_object: Any = None
+    debug_level: int = 0
+    port: Optional[int] = None
+
+    capabilities: List[str] = field(default_factory=list)
     separator: Optional[str] = None
     folder_capabilities: Dict[str, List[str]] = field(default_factory=dict)
 
@@ -97,12 +107,19 @@ class IMAP:
 
     def __post_init__(self):
         self.standard_flags = self.standard_rw_flags + self.standard_r_flags
+        self.connect()
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
         self.logout()
+
+    def __str__(self) -> str:
+        return f'"{self.selected_folder}"'
+
+    def __repr__(self) -> str:
+        return f'"{self.selected_folder}"'
 
     def logout(self) -> None:
         """Log out"""
@@ -126,7 +143,7 @@ class IMAP:
         if search_string:
             # search folders folders
             regexp = ""
-            parts = re.split(r"(?<!\\\)\*", search_string)
+            parts = re.split(r"(?<!\\)\*", search_string)
             total = len(parts)
             for i, p in enumerate(parts):
                 if p:
@@ -155,7 +172,7 @@ class IMAP:
         if folder_name:
             if folder_name not in self.mail_folders:
                 raise NonexistentFolderError(
-                    f"The folder you are trying to select ({folder_name}) doesn't exist"
+                    f"The folder you are trying to select ({folder_name}) doesn't exist. Hint: try getting list of available folders via `em.folders()`"
                 )
             if self.selected_folder:
                 self.imap.close()
@@ -174,7 +191,7 @@ class IMAP:
         """Saves folder capabilities in class variable if not present"""
 
         if folder_name not in self.folder_capabilities:
-            response, result = self.imap.capability()
+            _response, result = self.imap.capability()
             self.folder_capabilities[folder_name] = result[0].upper().split()
 
     def _update_folder_info(self) -> None:
@@ -204,38 +221,39 @@ class IMAP:
                 self.selected_folder_utf7 = utils.str_to_utf7(self.selected_folder)
         return self
 
-    def connect(self, **kwargs) -> "IMAP":
-        """Connect to remote IMAP server"""
-        # set connection vars
-        self.host: str = kwargs.pop("host", None)
-        self.username: str = kwargs.pop("username", None)
-        self.password: str = kwargs.pop("password", None)
-        self.ssl: bool = kwargs.pop("ssl", None)
-        self.auth_mechanism: Optional[str] = kwargs.pop("auth_mechanism", None)
-        self.auth_object: Any = kwargs.pop("auth_object", None)
-        # controls imaplib debugging, > 4 outputs all commands
-        self.debug_level: int = kwargs.pop("debug_level", 0)
-        self.port: int = kwargs.pop(
-            "port", imaplib.IMAP4_SSL_PORT if self.ssl else imaplib.IMAP4_PORT
-        )
+    def connect(self) -> "IMAP":
+        if not self.port:
+            self.port = imaplib.IMAP4_SSL_PORT if self.ssl else imaplib.IMAP4_PORT
+
+        if not self.host:
+            raise InvalidHost("Host is required for connection")
 
         try:
-            self.imap = self.lib(self.host, port=self.port)
+            if self.ssl:
+                self.imap = imaplib.IMAP4_SSL(self.host, port=self.port)
+            else:
+                self.imap = imaplib.IMAP4(self.host, port=self.port)
             self.imap.debug = self.debug_level
+
             if self.auth_mechanism:
+                if self.auth_object is None:
+                    raise ValueError(
+                        "auth_object is required when using auth_mechanism"
+                    )
                 self.imap.authenticate(self.auth_mechanism, self.auth_object)
             else:
+                if not self.username or not self.password:
+                    raise ValueError(
+                        "Both username and password are required for login"
+                    )
                 self.imap.login(self.username, self.password)
 
-        # socket errors
         except socket.error as e:
-            raise ConnectionRefused(e)
+            raise ConnectionRefused(str(e))
 
         self.logged_in = True
-        self.capabilities = self.imap.capabilities
-        # create folder info
+        self.capabilities = list(self.imap.capabilities)
         self._update_folder_info()
-
         return self
 
     @is_logged
@@ -248,9 +266,9 @@ class IMAP:
             if good_flags:
                 flags_str = "(\\" + " \\".join(f.name for f in good_flags) + ")"
             else:
-                flags_str = None
+                flags_str = ""
         else:
-            flags_str = None
+            flags_str = ""
 
         date_time: Optional[str] = kwargs.pop("date_time", None)
 
@@ -265,7 +283,7 @@ class IMAP:
         self.imap.append(
             '"' + utils.b_to_str(self.selected_folder_utf7) + '"',
             flags_str,
-            date_time,
+            date_time or "",
             msg,
         )
 
@@ -284,40 +302,42 @@ class IMAP:
     def emails(self, *args, **kwargs) -> List[EmailMessage]:
         """Returns emails based on search criteria or sequence set"""
         ids_only: bool = kwargs.get("ids_only", False)
-
         if len(args) > 2:
-            raise InvalidSearchQuery("Emails() method accepts maximum 2 parameters.")
+            raise InvalidSearchQuery("emails() method accepts maximum 2 parameters.")
         elif len(args) == 2:
             if not isinstance(args[0], int) or not isinstance(args[1], int):
                 raise InvalidSearchQuery(
-                    "Emails() method accepts 2 integers as parameters."
+                    "emails() method accepts 2 integers as parameters."
                 )
             if args[1] < 0:
                 raise InvalidSearchQuery(
-                    "Emails() method second parameter cannot be negative."
+                    "emails() method second parameter cannot be negative."
                 )
             return self._get_emails_by_sequence(args[0], args[1], ids_only=ids_only)
         elif len(args) == 1:
             if isinstance(args[0], Q):
                 query = args[0]
-                query.capabilities = self.folder_capabilities[self.selected_folder]
+                if self.selected_folder:
+                    query.capabilities = self.folder_capabilities.get(
+                        self.selected_folder, []
+                    )
                 use_query = query.get_query()
 
                 # call search
-                if len(query.non_ascii_params):
-                    # search using charset
-                    old_literal = self.imap.literal
-                    self.imap.literal = utils.str_to_b(query.non_ascii_params[0])
-                    _, data = self.imap.uid("SEARCH", *use_query)
-                    self.imap.literal = old_literal
-                else:
-                    _, data = self.imap.uid("SEARCH", *use_query)
+                if self.imap:
+                    if query.non_ascii_params:
+                        # search using charset
+                        old_literal = self.imap.literal
+                        self.imap.literal = utils.str_to_b(query.non_ascii_params[0])
+                        _, data = self.imap.uid("SEARCH", *use_query)
+                        self.imap.literal = old_literal
+                    else:
+                        _, data = self.imap.uid("SEARCH", *use_query)
 
-                if data and data[0]:
-                    uids = utils.b_to_str(data[0]).split()
-                    return self._fetch_emails_info(uids)
-                else:
-                    return []
+                    if data and data[0]:
+                        uids = utils.b_to_str(data[0]).split()
+                        return self._fetch_emails_info(uids)
+                return []
             elif isinstance(args[0], int):
                 return self._get_emails_by_sequence(args[0], ids_only=ids_only)
             else:
@@ -335,37 +355,41 @@ class IMAP:
         from_id: Optional[int] = None,
         to_id: Optional[int] = None,
         ids_only: bool = False,
-    ) -> Union[List[str], List[EmailMessage]]:
+    ) -> List[EmailMessage]:
         """Returns emails fetched by their sequence numbers."""
         from_seq = from_id
         to_seq = to_id
         status = self.info()
-        if not status["total"]:
+        total = status["total"] or 0
+        if not total:
             return []
-        if from_id and from_id < 0:
-            from_seq = status["total"] + from_id + 1
-            if to_id:
+        if from_id is not None and from_id < 0:
+            from_seq = total + from_id + 1
+            if to_id is not None:
                 raise InvalidSearchQuery(
                     "Invalid use of parameters: accepting only 1 parameter "
                     "when sequence start is negative."
                 )
-        if not from_id:
+        if from_id is None:
             from_seq = 1
-        if not to_id:
-            to_seq = status["total"]
+        if to_id is None:
+            to_seq = total
 
-        _, data = self.imap.fetch(f"{max(from_seq, 1)}:{max(to_seq, 1)}", "(UID)")
+        if self.imap:
+            _, data = self.imap.fetch(
+                f"{max(from_seq or 1, 1)}:{max(to_seq or 1, 1)}", "(UID)"
+            )
 
-        if isinstance(data, list) and data[0]:
-            uids = []
-            for inputs in data:
-                match = re.search("UID ([0-9]+)", utils.b_to_str(inputs))
-                if match:
-                    uids.append(match.group(1))
-            if ids_only:
-                return uids
-            else:
-                return self._fetch_emails_info(uids)
+            if isinstance(data, list) and data:
+                uids = []
+                for inputs in data:
+                    match = re.search(r"UID (\d+)", utils.b_to_str(inputs))
+                    if match:
+                        uids.append(match.group(1))
+                if ids_only:
+                    return [EmailMessage(uid=uid) for uid in uids]  # type: ignore
+                else:
+                    return self._fetch_emails_info(uids)
         return []
 
     @is_logged
@@ -374,42 +398,45 @@ class IMAP:
         objects
         """
         emails = []
-        uids = ",".join(email_uids)
         # fetch email without changing 'Seen' state
-        result, data = self.imap.uid("FETCH", uids, "(FLAGS BODY.PEEK[])")
-        if data:
-            total = len(data)
-            for i, inputs in enumerate(data):
-                if isinstance(inputs, tuple):
-                    email_id, raw_email = inputs
-                    # Check for email flags/uid added after email contents
-                    if (i + 1) < total:
-                        email_id += b" " + data[i + 1]
-                    email_id = utils.b_to_str(email_id)
-                    raw_email = utils.b_to_str(raw_email)
-                    # get UID
-                    uid_match = re.match(r".*UID (?P<uid>[0-9]+)", email_id)
-                    uid = uid_match.group("uid")
-                    # get FLAGS
-                    flags = []
-                    flags_match = re.match(r".*FLAGS \((?P<flags>.*?)\)", email_id)
-                    # cleanup standard tags
-                    if flags_match:
-                        for f in flags_match.group("flags").split():
-                            flag_name = f.upper().lstrip("\\")
-                            if flag_name in EmailFlag.__members__:
-                                flags.append(EmailFlag[flag_name])
-                            else:
-                                flags.append(f)
-                    email_obj = email.message_from_string(raw_email)
-                    email_parsed = self.msg_class(
-                        folder=self.selected_folder,
-                        uid=uid,
-                        flags=flags,
-                        email_obj=email_obj,
-                        imap_obj=self,
-                    )
-                    emails.append(email_parsed)
+        if self.imap and len(email_uids) > 0:
+            uids = ",".join(email_uids)
+            _result, data = self.imap.uid("FETCH", uids, "(FLAGS BODY.PEEK[])")
+            if data:
+                total = len(data)
+                for i, inputs in enumerate(data):
+                    if isinstance(inputs, tuple):
+                        email_id, raw_email = inputs
+                        # Check for email flags/uid added after email contents
+                        if (i + 1) < total and isinstance(data[i + 1], bytes):
+                            email_id += b" " + data[i + 1]
+                        email_id_str = utils.b_to_str(email_id)
+                        raw_email_str = utils.b_to_str(raw_email)
+                        # get UID
+                        uid_match = re.match(r".*UID (?P<uid>[0-9]+)", email_id_str)
+                        uid = uid_match.group("uid") if uid_match else ""
+                        # get FLAGS
+                        flags = []
+                        flags_match = re.match(
+                            r".*FLAGS \((?P<flags>.*?)\)", email_id_str
+                        )
+                        # cleanup standard tags
+                        if flags_match:
+                            for f in flags_match.group("flags").split():
+                                flag_name = f.upper().lstrip("\\")
+                                if flag_name in EmailFlag.__members__:
+                                    flags.append(EmailFlag[flag_name])
+                                else:
+                                    flags.append(f)
+                        email_obj = email.message_from_string(raw_email_str)
+                        email_parsed = self.msg_class(
+                            folder=self.selected_folder or "",
+                            uid=uid,
+                            flags=flags,
+                            email_obj=email_obj,
+                            imap_obj=self,
+                        )
+                        emails.append(email_parsed)
 
         return emails
 
@@ -432,7 +459,11 @@ class IMAP:
 
                 if compare_tag not in self.standard_rw_flags:
                     allowed_mark = self.standard_rw_flags
-                    allowed_unmark = [f"UN{t.name}" for t in self.standard_rw_flags]
+                    allowed_unmark = [
+                        EmailFlag[f"UN{t.name}"]
+                        for t in self.standard_rw_flags
+                        if f"UN{t.name}" in EmailFlag.__members__
+                    ]
                     allowed = ", ".join(str(i) for i in allowed_mark + allowed_unmark)
                     raise TagNotSupported(
                         f'Using "{t}" tag to mark email '
@@ -441,11 +472,11 @@ class IMAP:
                     )
 
         # add tags
-        if add_tags:
+        if add_tags and self.imap:
             tag_list = " ".join(f"\\{t.name}" for t in add_tags)
             self.imap.uid("STORE", uid, "+FLAGS", f"({tag_list})")
         # remove tags
-        if remove_tags:
+        if remove_tags and self.imap:
             tag_list = " ".join(f"\\{t.name}" for t in remove_tags)
             self.imap.uid("STORE", uid, "-FLAGS", f"({tag_list})")
         self._restore_operating_folder()
@@ -473,15 +504,16 @@ class IMAP:
             names = folder_name
 
         for n in names:
-            if self.separator in n:
+            if self.separator and self.separator in n:
                 raise InvalidFolderName(
                     f"Folder name cannot contain separator symbol: {self.separator}"
                 )
             parent_path = ""
             if self.selected_folder:
-                parent_path = self.selected_folder + self.separator
+                parent_path = self.selected_folder + (self.separator or "")
             name = utils.str_to_utf7('"' + utils.u(parent_path) + utils.u(n) + '"')
-            self.imap.create(name)
+            if self.imap and name is not None:
+                self.imap.create(name.decode())
 
         return self
 
@@ -490,17 +522,22 @@ class IMAP:
         self, uid: str, mailbox: str, msg_instance: EmailMessage
     ) -> EmailMessage:
         """Copy message with specified UID onto end of new_mailbox."""
-        self.imap.uid("COPY", uid, b'"' + utils.str_to_utf7(utils.u(mailbox)) + b'"')
-        copy_uid_data = self.imap.untagged_responses["COPYUID"]
-        for i, val in reversed(list(enumerate(copy_uid_data[:]))):
-            _, original_uid, target_uid = val.split()
-            if int(uid) == int(original_uid):
-                del copy_uid_data[i]
-                msg_instance.uid = target_uid
-                msg_instance.folder = mailbox
-                self.operating_folder = self.selected_folder
-                self.folder(mailbox)
-                break
+        if self.imap:
+            self.imap.uid(
+                "COPY", uid, '"' + utils.str_to_utf7(utils.u(mailbox)).decode() + '"'
+            )
+            copy_uid_data = self.imap.untagged_responses.get("COPYUID", [])
+            for i, val in reversed(list(enumerate(copy_uid_data[:]))):
+                if isinstance(val, str):
+                    _, original_uid, target_uid = val.split()
+                    if int(uid) == int(original_uid):
+                        del copy_uid_data[i]
+                        msg_instance.uid = target_uid
+                        msg_instance.folder = mailbox
+                        self.operating_folder = self.selected_folder
+                        self.folder(mailbox)
+                        break
+
         return msg_instance
 
     @is_logged
@@ -524,20 +561,20 @@ class IMAP:
     @is_logged
     def info(self) -> Dict[str, Optional[int]]:
         """Request named status conditions for mailbox."""
-        info = {
+        info: Dict[str, Optional[int]] = {
             "total": None,
             "recent": None,
             "unseen": None,
             "uidnext": None,
             "uidvalidity": None,
         }
-        if self.selected_folder_utf7:
+        if self.selected_folder_utf7 and self.imap:
             _status, result = self.imap.status(
-                b'"' + self.selected_folder_utf7 + b'"',
+                '"' + self.selected_folder_utf7.decode() + '"',
                 "(MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)",
             )
-            if result:
-                where = utils.b_to_str(result[0])
+            if result and isinstance(result[0], bytes):
+                where = result[0].decode()
                 messages = re.search(r"MESSAGES ([0-9]+)", where)
                 if messages:
                     info["total"] = int(messages.group(1))
@@ -563,19 +600,27 @@ class IMAP:
         sep = self.separator
         folder_name = utils.u(folder_name)
         if (
-            sep
+            sep is not None
             and folder_name
-            and (sep in self.selected_folder)
+            and (sep in (self.selected_folder or ""))
             and (sep not in folder_name)
         ):
-            folder_path = self.selected_folder.split(sep)[:-1]
+            folder_path = (self.selected_folder or "").split(sep)[:-1]
             folder_name = sep.join(folder_path) + sep + folder_name
 
         folder_to_rename = self.selected_folder_utf7
-        if folder_to_rename:
+        if folder_to_rename and self.imap:
             new_name = utils.str_to_utf7(folder_name)
+            """
+            Return to authenticated state. That's because some imap servers
+            (like outlook.com) cannot rename currently selected folder & return
+            "NO [CANNOT] Cannot rename selected folder." response
+            """
             self.folder()
-            self.imap.rename(b'"' + folder_to_rename + b'"', b'"' + new_name + b'"')
+            self.imap.rename(
+                '"' + folder_to_rename.decode() + '"', '"' + new_name.decode() + '"'
+            )
+            self._update_folder_info()
             self.folder(utils.b_to_str(new_name))
 
         return self
@@ -593,10 +638,13 @@ class IMAP:
             if self.selected_folder in folder_names:
                 self.folder()
             for f_name in folder_names:
-                self.imap.delete(b'"' + utils.str_to_utf7(utils.u(f_name)) + b'"')
+                if self.imap:
+                    self.imap.delete(
+                        '"' + utils.str_to_utf7(utils.u(f_name)).decode() + '"'
+                    )
         else:
             current_folder = self.selected_folder_utf7
-            if current_folder:
+            if current_folder and self.imap:
                 self.folder()
-                self.imap.delete(b'"' + current_folder + b'"')
+                self.imap.delete('"' + current_folder.decode() + '"')
         return self

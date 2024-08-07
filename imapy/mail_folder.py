@@ -86,7 +86,7 @@ class MailFolder:
             full_name = match.group("name")
             name = full_name.split(self.separator)[-1]
 
-            parent_name = False
+            parent_name = ""
             if self.separator in full_name:
                 parent_parts = full_name.split(self.separator)
                 parent_name = self.separator.join(parent_parts[:-1])
