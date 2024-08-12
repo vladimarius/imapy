@@ -53,9 +53,6 @@ for email in emails:
 em.logout()
 ```
 
-## Documentation
-
-For full documentation, please visit [our documentation page](https://imapy.readthedocs.io).
 
 ## Development
 
